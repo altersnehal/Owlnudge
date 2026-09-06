@@ -8,7 +8,7 @@ export default function Navbar({
   onToggleAudio 
 }) {
   return (
-    <header className="w-full max-w-2xl mx-auto sticky top-3 sm:top-4 z-40 mb-6 sm:mb-8 px-3 sm:px-4">
+    <header className="w-full max-w-xl mx-auto sticky top-3 sm:top-4 z-40 mb-4 sm:mb-6 px-3 sm:px-4">
       {/* Single, cohesive Apple-grade top bar */}
       <div className="bg-white/90 backdrop-blur-2xl rounded-full px-4 py-2 flex items-center justify-between gap-3 border border-white/80 shadow-[0_10px_30px_-5px_rgba(15,61,35,0.05),0_1px_3px_0_rgba(0,0,0,0.02)]">
         

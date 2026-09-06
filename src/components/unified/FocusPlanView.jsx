@@ -227,19 +227,114 @@ export default function FocusPlanView({
   const milestones = roadmap?.milestones || [];
 
   return (
-    <div className="space-y-8 max-w-xl mx-auto">
+    <div className="space-y-6 max-w-xl mx-auto">
       
       {/* ========================================================================= */}
-      {/* STEP 1 (TOP): RESOURCE & GOAL SLICER INGESTION BAR                        */}
+      {/* 1. TOP: COMPANION MASCOT & BIG STOPWATCH TIMER                            */}
+      {/* ========================================================================= */}
+      <section ref={focusRoomRef} className="space-y-4 text-center pt-2">
+        
+        {/* Companion Mascot & Ambient Prompt */}
+        <div className="flex flex-col items-center justify-center space-y-2">
+          <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-emerald-50/80 p-2 flex items-center justify-center transition-all duration-300 ${isRunning ? 'animate-breath scale-105' : ''}`}>
+            <img src="/assets/mascot.png" alt="Owlnudge Companion" className="w-full h-full object-contain" />
+          </div>
+          <p className="text-xs text-forest-800/80 font-sans max-w-xs transition-opacity duration-200">
+            {isSessionCompleted
+              ? "Sprint completed! Notice how good closure feels."
+              : isRunning
+              ? "I'm sitting beside you. Read Step 1 and press Done."
+              : "Ready when you are. Press Start Sprint to begin."}
+          </p>
+        </div>
+
+        {/* Apple-Style Stopwatch Digital Timer */}
+        <div className="space-y-2.5 select-none">
+          <div className="font-mono font-semibold text-6xl sm:text-7xl text-forest-950 tracking-tight">
+            {formatTime(secondsLeft)}
+          </div>
+
+          {/* Attention Burst Pacing Selectors */}
+          <div className="flex flex-wrap items-center justify-center gap-1.5 pt-0.5">
+            <button
+              onClick={() => handleSelectBurstDuration(10)}
+              className={`px-3 py-1 rounded-full text-[11px] font-mono transition active:scale-95 ${
+                timerDuration === 10 * 60 && !isCustomTimeOpen
+                  ? 'bg-forest-950 text-white font-bold shadow-xs'
+                  : 'bg-white hover:bg-slate-100 text-slate-500'
+              }`}
+            >
+              10m Burst
+            </button>
+            <button
+              onClick={() => handleSelectBurstDuration(15)}
+              className={`px-3 py-1 rounded-full text-[11px] font-mono transition active:scale-95 ${
+                timerDuration === 15 * 60 && !isCustomTimeOpen
+                  ? 'bg-forest-950 text-white font-bold shadow-xs'
+                  : 'bg-white hover:bg-slate-100 text-slate-500'
+              }`}
+            >
+              15m Steady
+            </button>
+            <button
+              onClick={() => handleSelectBurstDuration(25)}
+              className={`px-3 py-1 rounded-full text-[11px] font-mono transition active:scale-95 ${
+                timerDuration === 25 * 60 && !isCustomTimeOpen
+                  ? 'bg-forest-950 text-white font-bold shadow-xs'
+                  : 'bg-white hover:bg-slate-100 text-slate-500'
+              }`}
+            >
+              25m Sprint
+            </button>
+
+            {/* Manual / Custom Time Button */}
+            <button
+              onClick={() => setIsCustomTimeOpen(!isCustomTimeOpen)}
+              className={`px-3 py-1 rounded-full text-[11px] font-mono transition active:scale-95 flex items-center gap-1 ${
+                isCustomTimeOpen || (timerDuration !== 10 * 60 && timerDuration !== 15 * 60 && timerDuration !== 25 * 60)
+                  ? 'bg-emerald-600 text-white font-bold shadow-xs'
+                  : 'bg-white hover:bg-slate-100 text-slate-500'
+              }`}
+            >
+              <Sliders className="w-3 h-3" />
+              <span>Manual</span>
+            </button>
+          </div>
+
+          {/* Inline Custom Minutes Stepper / Input */}
+          {isCustomTimeOpen && (
+            <div className="p-2.5 bg-white rounded-2xl max-w-xs mx-auto shadow-sm border border-slate-100 flex items-center justify-center gap-2 animate-in fade-in duration-150">
+              <span className="text-xs text-slate-500 font-sans">Set duration:</span>
+              <input
+                type="number"
+                min="1"
+                max="180"
+                value={customMinutesInput}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setCustomMinutesInput(val);
+                  handleApplyCustomMinutes(val);
+                }}
+                className="w-16 px-2 py-1 bg-[#F8FAF8] rounded-lg text-center font-mono font-bold text-forest-950 text-sm border border-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+              <span className="text-xs font-mono text-slate-400">mins</span>
+            </div>
+          )}
+        </div>
+
+      </section>
+
+      {/* ========================================================================= */}
+      {/* 2. MIDDLE: RESOURCE & GOAL SLICER BAR (Between Timer & Active Task)       */}
       {/* ========================================================================= */}
       <section className="text-left">
         <form 
           onSubmit={handleGenerate} 
-          className="bg-white rounded-2xl sm:rounded-3xl p-2 sm:p-2.5 shadow-[0_8px_24px_-4px_rgba(15,61,35,0.04)] border border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 transition-all focus-within:border-emerald-300"
+          className="bg-white rounded-2xl sm:rounded-3xl p-1.5 sm:p-2 shadow-[0_8px_24px_-4px_rgba(15,61,35,0.04)] border border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 transition-all focus-within:border-emerald-300"
         >
           {/* Search / URL / Topic Input */}
           <div className="flex-1 flex items-center gap-2 px-3 py-1.5 bg-[#F8FAF8] rounded-xl sm:rounded-2xl border border-slate-200/50">
-            <Search className="w-4 h-4 text-slate-400 shrink-0" />
+            <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
             <input
               type="text"
               value={goalInput}
@@ -259,11 +354,11 @@ export default function FocusPlanView({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="p-1 px-2 rounded-lg hover:bg-slate-200/60 text-slate-500 hover:text-emerald-900 transition text-[11px] flex items-center gap-1 font-medium shrink-0"
+              className="p-1 px-1.5 rounded-lg hover:bg-slate-200/60 text-slate-500 hover:text-emerald-900 transition text-[11px] flex items-center gap-1 font-medium shrink-0"
               title="Upload .md / .pdf / .txt file"
             >
-              <Upload className="w-3.5 h-3.5 text-emerald-700" />
-              <span className="hidden sm:inline text-xs">Doc</span>
+              <Upload className="w-3 h-3 text-emerald-700" />
+              <span className="text-xs">Doc</span>
             </button>
 
             {goalInput && (
@@ -275,7 +370,7 @@ export default function FocusPlanView({
                 }}
                 className="text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-200/60 shrink-0"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-3 h-3" />
               </button>
             )}
           </div>
@@ -342,356 +437,266 @@ export default function FocusPlanView({
       </section>
 
       {/* ========================================================================= */}
-      {/* STEP 2 (CENTER): ACTIVE FOCUS ROOM & STOPWATCH (Execution Hero)           */}
+      {/* 3. ACTIVE FOCUS TASK CARD (Execution Hero)                                */}
       {/* ========================================================================= */}
-      <section ref={focusRoomRef} className="space-y-6 text-center pt-1">
+      <section className="bg-white rounded-3xl p-5 sm:p-6 shadow-[0_12px_32px_-4px_rgba(15,61,35,0.06),0_2px_6px_0_rgba(0,0,0,0.02)] text-left space-y-4 border border-slate-100">
         
-        {/* Companion Mascot & Ambient Dialogue */}
-        <div className="flex flex-col items-center justify-center space-y-2">
-          <div className={`w-20 h-20 sm:w-22 sm:h-22 rounded-full bg-emerald-50/80 p-2 flex items-center justify-center transition-all duration-300 ${isRunning ? 'animate-breath scale-105' : ''}`}>
-            <img src="/assets/mascot.png" alt="Owlnudge Companion" className="w-full h-full object-contain" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span className="text-[10px] font-mono text-emerald-800 uppercase tracking-wider font-semibold">
+              Active Focus Task
+            </span>
           </div>
-          <p className="text-xs text-forest-800/80 font-sans max-w-xs transition-opacity duration-200">
-            {isSessionCompleted
-              ? "Sprint completed! Notice how good closure feels."
-              : isRunning
-              ? "I'm sitting beside you. Read Step 1 and press Done."
-              : "Ready when you are. Press Start Sprint to begin."}
-          </p>
+          <span className="text-xs font-mono text-slate-400">
+            ~{Math.round(timerDuration / 60)} mins
+          </span>
         </div>
 
-        {/* Apple-Style Stopwatch Digital Timer with Presets & Manual Time Selection */}
-        <div className="space-y-3 select-none">
-          <div className="font-mono font-semibold text-6xl sm:text-7xl text-forest-950 tracking-tight">
-            {formatTime(secondsLeft)}
-          </div>
+        <div className="space-y-2">
+          <h3 className="text-base sm:text-lg font-bold text-forest-950 leading-snug">
+            {activeTask?.title || "Foundational Overview & Key Mental Models"}
+          </h3>
 
-          {/* Attention Burst Pacing Selectors with Manual Custom Option */}
-          <div className="flex flex-wrap items-center justify-center gap-1.5 pt-0.5">
-            <button
-              onClick={() => handleSelectBurstDuration(10)}
-              className={`px-3 py-1 rounded-full text-[11px] font-mono transition active:scale-95 ${
-                timerDuration === 10 * 60 && !isCustomTimeOpen
-                  ? 'bg-forest-950 text-white font-bold shadow-xs'
-                  : 'bg-white hover:bg-slate-100 text-slate-500'
-              }`}
-            >
-              10m Burst
-            </button>
-            <button
-              onClick={() => handleSelectBurstDuration(15)}
-              className={`px-3 py-1 rounded-full text-[11px] font-mono transition active:scale-95 ${
-                timerDuration === 15 * 60 && !isCustomTimeOpen
-                  ? 'bg-forest-950 text-white font-bold shadow-xs'
-                  : 'bg-white hover:bg-slate-100 text-slate-500'
-              }`}
-            >
-              15m Steady
-            </button>
-            <button
-              onClick={() => handleSelectBurstDuration(25)}
-              className={`px-3 py-1 rounded-full text-[11px] font-mono transition active:scale-95 ${
-                timerDuration === 25 * 60 && !isCustomTimeOpen
-                  ? 'bg-forest-950 text-white font-bold shadow-xs'
-                  : 'bg-white hover:bg-slate-100 text-slate-500'
-              }`}
-            >
-              25m Sprint
-            </button>
-
-            {/* Manual / Custom Time Button */}
-            <button
-              onClick={() => setIsCustomTimeOpen(!isCustomTimeOpen)}
-              className={`px-3 py-1 rounded-full text-[11px] font-mono transition active:scale-95 flex items-center gap-1 ${
-                isCustomTimeOpen || (timerDuration !== 10 * 60 && timerDuration !== 15 * 60 && timerDuration !== 25 * 60)
-                  ? 'bg-emerald-600 text-white font-bold shadow-xs'
-                  : 'bg-white hover:bg-slate-100 text-slate-500'
-              }`}
-            >
-              <Sliders className="w-3 h-3" />
-              <span>Manual</span>
-            </button>
-          </div>
-
-          {/* Inline Custom Minutes Stepper / Input (Manual Option) */}
-          {isCustomTimeOpen && (
-            <div className="p-2.5 bg-white rounded-2xl max-w-xs mx-auto shadow-sm border border-slate-100 flex items-center justify-center gap-2 animate-in fade-in duration-150">
-              <span className="text-xs text-slate-500 font-sans">Set duration:</span>
-              <input
-                type="number"
-                min="1"
-                max="180"
-                value={customMinutesInput}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setCustomMinutesInput(val);
-                  handleApplyCustomMinutes(val);
-                }}
-                className="w-16 px-2 py-1 bg-[#F8FAF8] rounded-lg text-center font-mono font-bold text-forest-950 text-sm border border-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-              />
-              <span className="text-xs font-mono text-slate-400">mins</span>
+          {/* Slop-Free Typography-First Working Memory Anchor */}
+          {activeTask?.intuitionTip && (
+            <div className="pt-2 border-t border-slate-100 flex items-start gap-2">
+              <span className="text-[10px] font-mono uppercase tracking-wider font-semibold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded shrink-0 select-none">
+                Intuition
+              </span>
+              <p className="text-xs text-forest-900/80 font-sans leading-relaxed">
+                {activeTask.intuitionTip}
+              </p>
             </div>
           )}
         </div>
 
-        {/* Active Task Card with Typography-First Slop-Free Intuition & Expandable Micro-Steps */}
-        <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-[0_12px_32px_-4px_rgba(15,61,35,0.06),0_2px_6px_0_rgba(0,0,0,0.02)] text-left space-y-4 border border-slate-100">
-          
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span className="text-[10px] font-mono text-emerald-800 uppercase tracking-wider font-semibold">
-                Active Focus Task
-              </span>
-            </div>
-            <span className="text-xs font-mono text-slate-400">
-              ~{Math.round(timerDuration / 60)} mins
-            </span>
-          </div>
+        {/* Sequential Micro-Steps with Expandable Reading Passages */}
+        <div className="space-y-2 pt-2">
+          <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">
+            Micro-Steps & Reading Material
+          </span>
 
-          <div className="space-y-2">
-            <h3 className="text-base sm:text-lg font-bold text-forest-950 leading-snug">
-              {activeTask?.title || "Climbing Stairs (Visualizing Base Cases)"}
-            </h3>
+          {microSteps.map((step, idx) => {
+            const isCurrent = idx === activeStepIndex;
+            const isDone = idx < activeStepIndex || isSessionCompleted;
+            const isExpanded = expandedStepIndex === idx;
 
-            {/* Slop-Free Typography-First Working Memory Anchor */}
-            {activeTask?.intuitionTip && (
-              <div className="pt-2 border-t border-slate-100 flex items-start gap-2">
-                <span className="text-[10px] font-mono uppercase tracking-wider font-semibold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded shrink-0 select-none">
-                  Intuition
-                </span>
-                <p className="text-xs text-forest-900/80 font-sans leading-relaxed">
-                  {activeTask.intuitionTip}
-                </p>
-              </div>
-            )}
-          </div>
+            const stepTitle = typeof step === 'string' ? step : step.title;
+            const stepTime = typeof step === 'string' ? '2m' : step.time;
+            const reading = typeof step === 'object' ? step.readingMaterial : null;
 
-          {/* Sequential Micro-Steps with Expandable Reading Passages */}
-          <div className="space-y-2 pt-2">
-            <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">
-              Micro-Steps & Reading Material
-            </span>
-
-            {microSteps.map((step, idx) => {
-              const isCurrent = idx === activeStepIndex;
-              const isDone = idx < activeStepIndex || isSessionCompleted;
-              const isExpanded = expandedStepIndex === idx;
-
-              const stepTitle = typeof step === 'string' ? step : step.title;
-              const stepTime = typeof step === 'string' ? '2m' : step.time;
-              const reading = typeof step === 'object' ? step.readingMaterial : null;
-
-              if (isDone) {
-                return (
-                  <div 
-                    key={idx} 
-                    className="p-3 rounded-xl bg-slate-50 flex items-center justify-between text-xs text-slate-400 transition"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-4 h-4 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center justify-center shrink-0">
-                        ✓
-                      </span>
-                      <span className="line-through text-slate-400">{stepTitle}</span>
-                    </div>
-                    <span className="text-[10px] font-mono text-emerald-700 font-medium">Completed</span>
-                  </div>
-                );
-              }
-
+            if (isDone) {
               return (
                 <div 
                   key={idx} 
-                  className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
-                    isCurrent 
-                      ? 'bg-emerald-50/40 border-emerald-300 shadow-xs' 
-                      : 'bg-[#F8FAF8] border-slate-100 opacity-60'
-                  }`}
+                  className="p-3 rounded-xl bg-slate-50 flex items-center justify-between text-xs text-slate-400 transition"
                 >
-                  {/* Step Header Toggle */}
-                  <div 
-                    onClick={() => setExpandedStepIndex(isExpanded ? null : idx)}
-                    className="p-3.5 flex items-center justify-between gap-3 cursor-pointer select-none hover:bg-emerald-50/70 transition"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <span className={`w-5 h-5 rounded-full flex items-center justify-center font-mono text-xs font-bold shrink-0 ${
-                        isCurrent ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600'
-                      }`}>
-                        {idx + 1}
-                      </span>
-                      <div>
-                        <p className="text-xs font-bold text-forest-950">{stepTitle}</p>
-                        <p className="text-[10px] text-slate-400 font-mono">~{stepTime} · Click to view concept</p>
-                      </div>
-                    </div>
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-4 h-4 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center justify-center shrink-0">
+                      ✓
+                    </span>
+                    <span className="line-through text-slate-400">{stepTitle}</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-emerald-700 font-medium">Completed</span>
+                </div>
+              );
+            }
 
-                    <div className="flex items-center gap-2 shrink-0">
-                      {reading && (
-                        <span className="text-[10px] font-mono text-emerald-800 bg-white px-2 py-0.5 rounded-full flex items-center gap-1 border border-emerald-200/50">
-                          <BookOpen className="w-3 h-3" />
-                          <span>Reading</span>
-                        </span>
-                      )}
-                      <span className="text-slate-400">
-                        {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                      </span>
+            return (
+              <div 
+                key={idx} 
+                className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
+                  isCurrent 
+                    ? 'bg-emerald-50/40 border-emerald-300 shadow-xs' 
+                    : 'bg-[#F8FAF8] border-slate-100 opacity-60'
+                }`}
+              >
+                {/* Step Header Toggle */}
+                <div 
+                  onClick={() => setExpandedStepIndex(isExpanded ? null : idx)}
+                  className="p-3.5 flex items-center justify-between gap-3 cursor-pointer select-none hover:bg-emerald-50/70 transition"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className={`w-5 h-5 rounded-full flex items-center justify-center font-mono text-xs font-bold shrink-0 ${
+                      isCurrent ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600'
+                    }`}>
+                      {idx + 1}
+                    </span>
+                    <div>
+                      <p className="text-xs font-bold text-forest-950">{stepTitle}</p>
+                      <p className="text-[10px] text-slate-400 font-mono">~{stepTime} · Click to view concept</p>
                     </div>
                   </div>
 
-                  {/* Collapsible Reading Material Container */}
-                  {isExpanded && (
-                    <div className="px-4 pb-4 pt-2 border-t border-emerald-100 bg-white/90 space-y-3 text-left animate-in fade-in duration-150">
-                      {reading ? (
-                        <div className="p-3.5 bg-[#F8FAF8] rounded-xl text-xs text-forest-950 font-sans leading-relaxed whitespace-pre-line border border-emerald-100/60 max-h-56 overflow-y-auto">
-                          {reading}
-                        </div>
-                      ) : (
-                        <p className="text-xs text-slate-500 font-sans italic">
-                          Execute this micro-step in your workspace, code editor, or notepad.
-                        </p>
-                      )}
-
-                      {/* Explicit "Done & Complete Step" Button */}
-                      {isCurrent && (
-                        <div className="flex items-center justify-between pt-1">
-                          <span className="text-[11px] text-slate-400 font-sans">Done reading this concept?</span>
-                          <button
-                            onClick={() => handleStepComplete(idx)}
-                            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm active:scale-95 transition flex items-center gap-1.5"
-                          >
-                            <Check className="w-3.5 h-3.5" />
-                            <span>Done & Complete Step</span>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {reading && (
+                      <span className="text-[10px] font-mono text-emerald-800 bg-white px-2 py-0.5 rounded-full flex items-center gap-1 border border-emerald-200/50">
+                        <BookOpen className="w-3 h-3" />
+                        <span>Reading</span>
+                      </span>
+                    )}
+                    <span className="text-slate-400">
+                      {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </span>
+                  </div>
                 </div>
-              );
-            })}
-          </div>
 
+                {/* Collapsible Reading Material Container */}
+                {isExpanded && (
+                  <div className="px-4 pb-4 pt-2 border-t border-emerald-100 bg-white/90 space-y-3 text-left animate-in fade-in duration-150">
+                    {reading ? (
+                      <div className="p-3.5 bg-[#F8FAF8] rounded-xl text-xs text-forest-950 font-sans leading-relaxed whitespace-pre-line border border-emerald-100/60 max-h-56 overflow-y-auto">
+                        {reading}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-500 font-sans italic">
+                        Execute this micro-step in your workspace, code editor, or notepad.
+                      </p>
+                    )}
+
+                    {/* Explicit "Done & Complete Step" Button */}
+                    {isCurrent && (
+                      <div className="flex items-center justify-between pt-1">
+                        <span className="text-[11px] text-slate-400 font-sans">Done reading this concept?</span>
+                        <button
+                          onClick={() => handleStepComplete(idx)}
+                          className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm active:scale-95 transition flex items-center gap-1.5"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Done & Complete Step</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
-
-        {/* Tactile Control Bar: Start Sprint, Done, Brown Noise, Stuck */}
-        <div className="flex flex-wrap items-center justify-center gap-2.5 pt-1">
-          
-          {/* Start / Pause Sprint */}
-          <button
-            onClick={() => setIsRunning(!isRunning)}
-            className={`px-5 py-2.5 rounded-full text-xs font-semibold shadow-sm active:scale-95 transition-all duration-150 flex items-center gap-2 ${
-              isRunning
-                ? 'bg-amber-100 text-amber-900 hover:bg-amber-200'
-                : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-            }`}
-          >
-            {isRunning ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
-            <span>{isRunning ? 'Pause Sprint' : 'Start Sprint'}</span>
-          </button>
-
-          {/* Session Complete Button */}
-          <button
-            onClick={() => handleCompleteSession(false)}
-            className="px-4 py-2.5 rounded-full text-xs font-semibold bg-emerald-800 hover:bg-emerald-900 text-white shadow-sm active:scale-95 transition-all duration-150 flex items-center gap-1.5"
-            title="Mark session complete and record focus time"
-          >
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>Done</span>
-          </button>
-
-          {/* Brown Noise Generator */}
-          <button
-            onClick={toggleBrownNoise}
-            className={`px-3.5 py-2.5 rounded-full text-xs font-medium flex items-center gap-1.5 shadow-sm active:scale-95 transition-all duration-150 ${
-              isBrownNoiseOn
-                ? 'bg-emerald-100 text-emerald-900 font-semibold'
-                : 'bg-white hover:bg-slate-50 text-forest-900'
-            }`}
-          >
-            {isBrownNoiseOn ? (
-              <Volume2 className="w-3.5 h-3.5 text-emerald-700 animate-pulse" />
-            ) : (
-              <VolumeX className="w-3.5 h-3.5 text-slate-400" />
-            )}
-            <span>{isBrownNoiseOn ? 'Brown Noise (On)' : 'Brown Noise'}</span>
-          </button>
-
-          {/* I'm Feeling Stuck Helper */}
-          <button
-            onClick={() => setShowStuckModal(true)}
-            className="px-3.5 py-2 text-xs text-slate-400 hover:text-slate-700 font-sans active:scale-95 transition duration-100 flex items-center gap-1.5"
-          >
-            <LifeBuoy className="w-3.5 h-3.5" />
-            <span>I'm feeling stuck</span>
-          </button>
-        </div>
-
-        {/* Emergency Calm Stuck Dialog */}
-        {showStuckModal && (
-          <div className="fixed inset-0 z-50 bg-forest-950/40 backdrop-blur-md flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl space-y-5 text-left animate-in fade-in zoom-in-95 duration-150">
-              <div className="space-y-1">
-                <h4 className="font-display font-bold text-forest-950 text-base">
-                  Take a breath. No judgment.
-                </h4>
-                <p className="text-xs text-slate-500 leading-relaxed font-sans">
-                  Initiation friction happens to everyone. How can we make this moment easier?
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <button
-                  onClick={() => {
-                    setShowStuckModal(false);
-                    handleStepComplete(activeStepIndex);
-                  }}
-                  className="w-full p-3.5 bg-[#F8FAF8] hover:bg-emerald-50 rounded-2xl text-left text-xs font-semibold text-forest-950 transition active:scale-98 flex items-center justify-between"
-                >
-                  <span>✂️ Shrink to 10-second micro-read</span>
-                  <span className="text-emerald-700 font-mono text-[11px]">Easy</span>
-                </button>
-                
-                <button
-                  onClick={() => {
-                    setShowStuckModal(false);
-                    onOpenCheckin?.();
-                  }}
-                  className="w-full p-3.5 bg-[#F8FAF8] hover:bg-emerald-50 rounded-2xl text-left text-xs font-semibold text-forest-950 transition active:scale-98 flex items-center justify-between"
-                >
-                  <span>🧘 90-second box breathing reset</span>
-                  <span className="text-slate-400 font-mono text-[11px]">Somatic</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setShowStuckModal(false);
-                    onAbsorbBuffer?.();
-                  }}
-                  className="w-full p-3.5 bg-[#F8FAF8] hover:bg-amber-50 rounded-2xl text-left text-xs font-semibold text-amber-950 transition active:scale-98 flex items-center justify-between"
-                >
-                  <span>🛡️ Absorb into Buffer Slot (Zero Guilt)</span>
-                  <span className="text-amber-700 font-mono text-[11px]">Protected</span>
-                </button>
-              </div>
-
-              <div className="pt-1">
-                <button
-                  onClick={() => setShowStuckModal(false)}
-                  className="w-full py-2.5 rounded-xl bg-forest-950 hover:bg-forest-900 text-white text-xs font-medium transition text-center"
-                >
-                  Back to Focus Room
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
       </section>
 
       {/* ========================================================================= */}
-      {/* STEP 3 (BOTTOM): THE LIVING CURRICULUM ROADMAP (Weekly Milestone Drawer)  */}
+      {/* 4. TACTILE CONTROL BAR (Start Sprint, Brown Noise, Stuck, Done)           */}
       {/* ========================================================================= */}
-      <section className="space-y-4 pt-6 border-t border-slate-200/60 text-left">
+      <section className="flex flex-wrap items-center justify-center gap-2.5 pt-1">
+        
+        {/* Start / Pause Sprint */}
+        <button
+          onClick={() => setIsRunning(!isRunning)}
+          className={`px-5 py-2.5 rounded-full text-xs font-semibold shadow-sm active:scale-95 transition-all duration-150 flex items-center gap-2 ${
+            isRunning
+              ? 'bg-amber-100 text-amber-900 hover:bg-amber-200'
+              : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+          }`}
+        >
+          {isRunning ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
+          <span>{isRunning ? 'Pause Sprint' : 'Start Sprint'}</span>
+        </button>
+
+        {/* Brown Noise Generator */}
+        <button
+          onClick={toggleBrownNoise}
+          className={`px-3.5 py-2.5 rounded-full text-xs font-medium flex items-center gap-1.5 shadow-sm active:scale-95 transition-all duration-150 ${
+            isBrownNoiseOn
+              ? 'bg-emerald-100 text-emerald-900 font-semibold'
+              : 'bg-white hover:bg-slate-50 text-forest-900'
+          }`}
+        >
+          {isBrownNoiseOn ? (
+            <Volume2 className="w-3.5 h-3.5 text-emerald-700 animate-pulse" />
+          ) : (
+            <VolumeX className="w-3.5 h-3.5 text-slate-400" />
+          )}
+          <span>{isBrownNoiseOn ? 'Brown Noise (On)' : 'Brown Noise'}</span>
+        </button>
+
+        {/* I'm Feeling Stuck Helper */}
+        <button
+          onClick={() => setShowStuckModal(true)}
+          className="px-3.5 py-2 text-xs text-slate-400 hover:text-slate-700 font-sans active:scale-95 transition duration-100 flex items-center gap-1.5"
+        >
+          <LifeBuoy className="w-3.5 h-3.5" />
+          <span>I'm feeling stuck</span>
+        </button>
+
+        {/* Session Complete Button */}
+        <button
+          onClick={() => handleCompleteSession(false)}
+          className="px-4 py-2.5 rounded-full text-xs font-semibold bg-emerald-800 hover:bg-emerald-900 text-white shadow-sm active:scale-95 transition-all duration-150 flex items-center gap-1.5"
+          title="Mark session complete and record focus time"
+        >
+          <CheckCircle2 className="w-3.5 h-3.5" />
+          <span>Done</span>
+        </button>
+
+      </section>
+
+      {/* Emergency Calm Stuck Dialog */}
+      {showStuckModal && (
+        <div className="fixed inset-0 z-50 bg-forest-950/40 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl space-y-5 text-left animate-in fade-in zoom-in-95 duration-150">
+            <div className="space-y-1">
+              <h4 className="font-display font-bold text-forest-950 text-base">
+                Take a breath. No judgment.
+              </h4>
+              <p className="text-xs text-slate-500 leading-relaxed font-sans">
+                Initiation friction happens to everyone. How can we make this moment easier?
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <button
+                onClick={() => {
+                  setShowStuckModal(false);
+                  handleStepComplete(activeStepIndex);
+                }}
+                className="w-full p-3.5 bg-[#F8FAF8] hover:bg-emerald-50 rounded-2xl text-left text-xs font-semibold text-forest-950 transition active:scale-98 flex items-center justify-between"
+              >
+                <span>✂️ Shrink to 10-second micro-read</span>
+                <span className="text-emerald-700 font-mono text-[11px]">Easy</span>
+              </button>
+              
+              <button
+                onClick={() => {
+                  setShowStuckModal(false);
+                  onOpenCheckin?.();
+                }}
+                className="w-full p-3.5 bg-[#F8FAF8] hover:bg-emerald-50 rounded-2xl text-left text-xs font-semibold text-forest-950 transition active:scale-98 flex items-center justify-between"
+              >
+                <span>🧘 90-second box breathing reset</span>
+                <span className="text-slate-400 font-mono text-[11px]">Somatic</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowStuckModal(false);
+                  onAbsorbBuffer?.();
+                }}
+                className="w-full p-3.5 bg-[#F8FAF8] hover:bg-amber-50 rounded-2xl text-left text-xs font-semibold text-amber-950 transition active:scale-98 flex items-center justify-between"
+              >
+                <span>🛡️ Absorb into Buffer Slot (Zero Guilt)</span>
+                <span className="text-amber-700 font-mono text-[11px]">Protected</span>
+              </button>
+            </div>
+
+            <div className="pt-1">
+              <button
+                onClick={() => setShowStuckModal(false)}
+                className="w-full py-2.5 rounded-xl bg-forest-950 hover:bg-forest-900 text-white text-xs font-medium transition text-center"
+              >
+                Back to Focus Room
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 5. THE LIVING CURRICULUM ROADMAP (Weekly Milestone Drawer)                 */}
+      {/* ========================================================================= */}
+      <section className="space-y-3 pt-6 border-t border-slate-200/60 text-left">
         
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
@@ -722,7 +727,7 @@ export default function FocusPlanView({
                 >
                   <div className="flex items-center gap-3">
                     <span className="w-7 h-7 rounded-xl bg-emerald-50 text-emerald-800 font-mono text-xs font-bold flex items-center justify-center shrink-0">
-                      W{milestone.weekNumber}
+                      {milestone.weekNumber ? `M${milestone.weekNumber}` : 'M1'}
                     </span>
                     <div>
                       <h4 className="text-xs sm:text-sm font-bold text-forest-950">

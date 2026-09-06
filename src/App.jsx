@@ -117,7 +117,7 @@ export default function App() {
       />
 
       {/* Main Unified Single-Focus Workspace */}
-      <main className="flex-1 max-w-2xl w-full mx-auto px-4 sm:px-6 py-2 sm:py-4 pb-20">
+      <main className="flex-1 max-w-xl w-full mx-auto px-4 sm:px-6 py-2 sm:py-3 pb-20">
         <FocusPlanView
           roadmap={roadmap}
           activeTask={activeTask}
