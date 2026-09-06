@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Owlnudge · Master Brand & Visual Direction (Emil + UI/UX Pro Max + Impeccable)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['"Outfit"', 'sans-serif'],
+            sans: ['"Plus Jakarta Sans"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            forest: {
+              800: '#14532d',
+              900: '#0f3d23',
+              950: '#092615',
+            },
+            owlGreen: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              200: '#bbf7d0',
+              300: '#86efac',
+              400: '#4ade80',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+            },
+            butterYellow: {
+              100: '#fef9c3',
+              200: '#fef08a',
+              300: '#fde047',
+              400: '#facc15',
+              500: '#eab308',
+            },
+            creamBg: '#f8faf7',
+          },
+          boxShadow: {
+            'pill': '0 4px 14px 0 rgba(0, 0, 0, 0.06), 0 1px 2px 0 rgba(0, 0, 0, 0.04)',
+            'mascot-glow': '0 12px 30px -4px rgba(34, 197, 94, 0.25)',
+            'diffusion': '0 20px 40px -15px rgba(15, 61, 35, 0.06)',
+            'card': '0 10px 30px -10px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(226, 232, 240, 0.8)',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    :root {
+      --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+      --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+    }
+    body {
+      background-color: #f8faf7;
+      color: #0f2b1d;
+      -webkit-font-smoothing: antialiased;
+    }
+    .emil-press {
+      transition: transform 160ms var(--ease-out), box-shadow 160ms ease;
+    }
+    .emil-press:active {
+      transform: scale(0.97);
+    }
+    .mascot-hover {
+      transition: transform 300ms var(--ease-out);
+    }
+    .mascot-hover:hover {
+      transform: translateY(-4px) rotate(-1deg) scale(1.02);
+    }
+    .breath-cycle {
+      animation: gentleBreath 4s infinite ease-in-out;
+    }
+    @keyframes gentleBreath {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.03) translateY(-2px); filter: drop-shadow(0 8px 16px rgba(34, 197, 94, 0.3)); }
+    }
+    .ripple-bg {
+      background: radial-gradient(circle at center, #15803d 0%, #0f3d23 60%, #092615 100%);
+    }
+  </style>
+</head>
+<body class="min-h-[100dvh] pb-24 text-slate-900 font-sans">
+
+  <!-- ================= TOP HEADER ================= -->
+  <header class="bg-white/95 backdrop-blur border-b border-emerald-100 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 py-3 flex items-center justify-between">
+      
+      <!-- Logo + Name -->
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-2xl bg-owlGreen-500/15 border border-owlGreen-500/30 flex items-center justify-center p-1 shadow-sm overflow-hidden">
+          <img src="assets/mascot.png" alt="Owlnudge Mascot" class="w-full h-full object-contain" />
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-display font-extrabold text-xl sm:text-2xl text-forest-900 tracking-tight">Owlnudge</h1>
+            <span class="px-2.5 py-0.5 rounded-full bg-butterYellow-300 text-forest-950 font-display font-bold text-xs border border-forest-900/10 shadow-sm">
+              Moodboard Matched ✨
+            </span>
+          </div>
+          <p class="text-[11px] text-forest-700/80 font-medium">ADHD Accountability & Gentle Recovery Mentor</p>
+        </div>
+      </div>
+
+      <!-- Quick Nav Buttons -->
+      <div class="flex items-center gap-2">
+        <a href="index.html" class="px-3.5 py-2 rounded-xl bg-forest-900 text-white font-display font-bold text-xs hover:bg-forest-800 transition emil-press shadow-sm">
+          📱 Interactive Storyboard
+        </a>
+        <a href="plan.html" class="px-3.5 py-2 rounded-xl bg-white border border-emerald-200 text-forest-900 font-display font-semibold text-xs hover:bg-emerald-50 transition shadow-sm">
+          📐 Technical Plan
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= HERO MOODBOARD BANNER ================= -->
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-6">
+    <div class="ripple-bg rounded-3xl p-8 sm:p-10 text-white relative overflow-hidden shadow-2xl">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
+        
+        <div class="lg:col-span-7 space-y-4">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-butterYellow-300 text-forest-950 text-xs font-display font-bold shadow-sm">
+            <span>🦉 Meet Owlnudge</span>
+          </div>
+          <h2 class="text-3xl sm:text-4xl lg:text-5xl font-display font-black tracking-tight leading-tight text-white">
+            Your empathetic mentor for ADHD learning momentum.
+          </h2>
+          <p class="text-sm sm:text-base text-emerald-100 leading-relaxed max-w-2xl font-sans">
+            Playful, supportive, and completely slop-free. Combines our wise green mentor mascot with gentle butter-yellow badges, procedural brown noise, and zero-shame buffer recovery.
+          </p>
+          
+          <div class="flex flex-wrap gap-2.5 pt-2">
+            <span class="px-3.5 py-1.5 rounded-full bg-black/20 backdrop-blur border border-white/20 text-xs font-display font-bold text-butterYellow-300 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-butterYellow-300 animate-pulse"></span>
+              live capture
+            </span>
+            <span class="px-3.5 py-1.5 rounded-full bg-black/20 backdrop-blur border border-white/20 text-xs font-display font-bold text-white flex items-center gap-1.5">
+              AI notes
+            </span>
+            <span class="px-3.5 py-1.5 rounded-full bg-butterYellow-400 text-forest-950 text-xs font-display font-bold">
+              Buffer Shield Active 🛡️
+            </span>
+          </div>
+        </div>
+
+        <!-- Mascot Hero Card -->
+        <div class="lg:col-span-5 flex justify-center">
+          <div class="relative bg-white/10 backdrop-blur-md border-2 border-white/20 p-6 rounded-3xl text-center space-y-3 mascot-hover">
+            <div class="w-44 h-44 mx-auto breath-cycle flex items-center justify-center">
+              <img src="assets/mascot.png" alt="Owlnudge Mascot" class="w-full h-full object-contain drop-shadow-xl" />
+            </div>
+            <div class="bg-white text-forest-900 px-4 py-2 rounded-2xl shadow-pill font-display font-bold text-sm inline-block">
+              "You've got this! Let's do Step 1 together."
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SECTION 1: CONFIRMED MOODBOARD PALETTE ================= -->
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div class="border-b border-slate-200 pb-3 flex items-center justify-between">
+      <div>
+        <span class="text-xs font-mono font-bold text-forest-800 uppercase tracking-wide">01 · Visual Identity</span>
+        <h3 class="text-xl font-display font-bold text-forest-900 mt-0.5">Moodboard Color Tokens & Typography Hierarchy</h3>
+      </div>
+      <span class="text-xs text-slate-500 font-mono">Matched to Kivo & Harvest References</span>
+    </div>
+
+    <!-- Color Swatches Grid -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+      
+      <div class="p-3 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-2">
+        <div class="h-14 rounded-xl bg-forest-900 border border-forest-800 flex items-center justify-center text-white font-mono text-xs font-bold">
+          #0F3D23
+        </div>
+        <div class="text-xs font-display font-bold text-slate-900">Deep Forest</div>
+        <div class="text-[10px] text-slate-500 font-mono">Hero Background</div>
+      </div>
+
+      <div class="p-3 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-2">
+        <div class="h-14 rounded-xl bg-owlGreen-500 border border-owlGreen-600 flex items-center justify-center text-white font-mono text-xs font-bold">
+          #22C55E
+        </div>
+        <div class="text-xs font-display font-bold text-slate-900">Owl Green</div>
+        <div class="text-[10px] text-slate-500 font-mono">Mascot & Action CTA</div>
+      </div>
+
+      <div class="p-3 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-2">
+        <div class="h-14 rounded-xl bg-butterYellow-300 border border-butterYellow-400 flex items-center justify-center text-forest-950 font-mono text-xs font-bold">
+          #FDE047
+        </div>
+        <div class="text-xs font-display font-bold text-slate-900">Butter Yellow</div>
+        <div class="text-[10px] text-slate-500 font-mono">Pills & Buffer Badges</div>
+      </div>
+
+      <div class="p-3 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-2">
+        <div class="h-14 rounded-xl bg-owlGreen-100 border border-owlGreen-200 flex items-center justify-center text-forest-800 font-mono text-xs font-bold">
+          #DCFCE7
+        </div>
+        <div class="text-xs font-display font-bold text-slate-900">Mint Soft</div>
+        <div class="text-[10px] text-slate-500 font-mono">Card Highlights</div>
+      </div>
+
+      <div class="p-3 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-2">
+        <div class="h-14 rounded-xl bg-[#f8faf7] border border-slate-200 flex items-center justify-center text-slate-700 font-mono text-xs font-bold">
+          #F8FAF7
+        </div>
+        <div class="text-xs font-display font-bold text-slate-900">Cream Ivory</div>
+        <div class="text-[10px] text-slate-500 font-mono">App Canvas Base</div>
+      </div>
+
+      <div class="p-3 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-2">
+        <div class="h-14 rounded-xl bg-white border border-slate-300 flex items-center justify-center text-slate-800 font-mono text-xs font-bold">
+          #FFFFFF
+        </div>
+        <div class="text-xs font-display font-bold text-slate-900">Pure White</div>
+        <div class="text-[10px] text-slate-500 font-mono">Card Surfaces</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ================= SECTION 2: LIVE MASCOT-DRIVEN SCREEN MOCKUPS ================= -->
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div class="border-b border-slate-200 pb-3 flex items-center justify-between">
+      <div>
+        <span class="text-xs font-mono font-bold text-forest-800 uppercase tracking-wide">02 · Applied Screen Blueprints</span>
+        <h3 class="text-xl font-display font-bold text-forest-900 mt-0.5">Owlnudge Mascot in Core User Flows</h3>
+      </div>
+      <span class="text-xs text-slate-500 font-mono">Interactive Live Demos</span>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+
+      <!-- SCREEN 1: Body Doubler with Mascot -->
+      <div class="md:col-span-6 bg-white p-6 sm:p-7 rounded-3xl border border-emerald-200/80 shadow-card space-y-4">
+        <div class="flex items-center justify-between">
+          <span class="px-2.5 py-1 bg-butterYellow-300 text-forest-950 font-display font-bold text-xs rounded-full shadow-sm">
+            Focus Room
+          </span>
+          <span class="text-[11px] font-mono text-slate-500">25m Block</span>
+        </div>
+
+        <div class="p-4 bg-emerald-50/60 rounded-2xl border border-emerald-100 flex items-center gap-4">
+          <div class="w-16 h-16 shrink-0 breath-cycle">
+            <img src="assets/mascot.png" alt="Mascot Coaching" class="w-full h-full object-contain" />
+          </div>
+          <div>
+            <h4 class="font-display font-bold text-forest-950 text-sm">Owlnudge Companion</h4>
+            <p class="text-xs text-forest-800 mt-0.5">"Working quietly beside you. You only have to complete Step 1."</p>
+          </div>
+        </div>
+
+        <!-- Sequential Ladder -->
+        <div class="space-y-2">
+          <div class="p-3 bg-white border-2 border-owlGreen-500 rounded-xl flex items-center gap-3 shadow-sm">
+            <input type="checkbox" checked class="w-4 h-4 rounded text-owlGreen-600 focus:ring-owlGreen-500" />
+            <span class="text-xs line-through text-slate-400 font-medium">1. Open LeetCode tab & read example 1 (30s)</span>
+          </div>
+          <div class="p-3 bg-owlGreen-50/80 border border-owlGreen-300 rounded-xl flex items-center gap-3">
+            <input type="checkbox" class="w-4 h-4 rounded text-owlGreen-600 focus:ring-owlGreen-500" />
+            <span class="text-xs font-bold text-forest-950">2. Draw base cases n=1, n=2 on napkin (2m)</span>
+            <span class="ml-auto text-[10px] font-display font-bold bg-owlGreen-600 text-white px-2 py-0.5 rounded-full">Active</span>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-1">
+          <button class="px-4 py-2 bg-forest-900 text-white text-xs font-display font-bold rounded-xl emil-press shadow-sm">
+            Start Brown Noise 🎧
+          </button>
+          <span class="text-xs text-slate-500 font-mono">Timer: 23:40</span>
+        </div>
+      </div>
+
+      <!-- SCREEN 2: Zero-Shame Recovery Modal with Mascot -->
+      <div class="md:col-span-6 bg-white p-6 sm:p-7 rounded-3xl border-2 border-emerald-300 shadow-card space-y-4">
+        <div class="flex items-center justify-between">
+          <span class="px-2.5 py-1 bg-butterYellow-300 text-forest-950 font-display font-bold text-xs rounded-full shadow-sm">
+            Zero-Shame Shield ⭐
+          </span>
+          <span class="text-[11px] font-mono text-emerald-800 font-bold bg-emerald-100 px-2 py-0.5 rounded-full">100% On Track</span>
+        </div>
+
+        <div class="p-4 bg-emerald-50/80 rounded-2xl border border-emerald-200 flex items-start gap-4">
+          <div class="w-16 h-16 shrink-0">
+            <img src="assets/mascot.png" alt="Mascot Welcome" class="w-full h-full object-contain" />
+          </div>
+          <div class="space-y-1">
+            <h4 class="font-display font-bold text-forest-950 text-sm">"Welcome back, Alex! Glad you're here."</h4>
+            <p class="text-xs text-forest-800 leading-relaxed">
+              No apologies needed. We automatically absorbed your missed days into <strong>Buffer Day 1</strong>. Your interview target date remains unchanged!
+            </p>
+          </div>
+        </div>
+
+        <!-- Buffer Bar -->
+        <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+          <div class="flex justify-between text-xs text-forest-900 font-display font-semibold">
+            <span>Buffer Protection Status</span>
+            <span class="text-emerald-700 font-mono">1 of 2 Buffers Used</span>
+          </div>
+          <div class="h-2.5 bg-slate-200 rounded-full overflow-hidden flex">
+            <div class="w-1/2 bg-owlGreen-600 h-full"></div>
+            <div class="w-1/4 bg-butterYellow-400 h-full"></div>
+            <div class="w-1/4 bg-slate-300 h-full"></div>
+          </div>
+        </div>
+
+        <button class="w-full py-2.5 bg-owlGreen-600 hover:bg-owlGreen-700 text-white font-display font-bold text-xs rounded-xl shadow-md emil-press">
+          Claim 60s Micro-Win → Restore Momentum
+        </button>
+      </div>
+
+    </div>
+  </section>
+
+</body>
+</html>

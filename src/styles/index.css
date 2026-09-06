@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+body {
+  background-color: #f8faf7;
+  color: #0f2b1d;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Emil Kowalski Button Scale on Press */
+.emil-btn {
+  transition: transform 160ms var(--ease-out), background-color 160ms ease, box-shadow 160ms ease;
+  touch-action: manipulation;
+}
+.emil-btn:active {
+  transform: scale(0.97);
+}
+
+/* Co-Regulation Passive Breathing Animation */
+.breath-cycle {
+  animation: gentleBreath 4s infinite ease-in-out;
+}
+@keyframes gentleBreath {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04) translateY(-2px); filter: drop-shadow(0 6px 14px rgba(34, 197, 94, 0.3)); }
+}
+
+/* Ripple background */
+.ripple-bg {
+  background: radial-gradient(circle at center, #15803d 0%, #0f3d23 60%, #092615 100%);
+}
+
+/* Hold-to-reset asymmetric clip-path */
+.hold-overlay {
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 200ms var(--ease-out);
+}
+.hold-btn:active .hold-overlay {
+  clip-path: inset(0 0 0 0);
+  transition: clip-path 1.5s linear;
+}

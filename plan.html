@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Owlnudge · Design Language System & MVP Engineering Plan</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['"Outfit"', 'sans-serif'],
+            sans: ['"Plus Jakarta Sans"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            forest: {
+              800: '#14532d',
+              900: '#0f3d23',
+              950: '#092615',
+            },
+            owlGreen: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              200: '#bbf7d0',
+              300: '#86efac',
+              400: '#4ade80',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+            },
+            butterYellow: {
+              100: '#fef9c3',
+              200: '#fef08a',
+              300: '#fde047',
+              400: '#facc15',
+              500: '#eab308',
+            },
+            slateBase: {
+              50: '#f8fafc',
+              100: '#f1f5f9',
+              200: '#e2e8f0',
+              300: '#cbd5e1',
+              400: '#94a3b8',
+              500: '#64748b',
+              600: '#475569',
+              700: '#334155',
+              800: '#1e293b',
+              900: '#0f172a',
+              950: '#020617',
+            }
+          },
+          boxShadow: {
+            'diffusion': '0 20px 40px -15px rgba(15, 23, 42, 0.05)',
+            'subtle': '0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.02)',
+            'card': '0 10px 30px -10px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(226, 232, 240, 0.8)',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Smooth rendering & micro-interactions */
+    body {
+      background-color: #f8faf7;
+      color: #0f172a;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .breathing-pulse {
+      animation: breath 4s infinite ease-in-out;
+    }
+    @keyframes breath {
+      0%, 100% { transform: scale(1); opacity: 0.92; }
+      50% { transform: scale(1.03); opacity: 1; filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.25)); }
+    }
+    .tactile-btn:active {
+      transform: scale(0.98) translateY(1px);
+    }
+  </style>
+</head>
+<body class="min-h-[100dvh] pb-24 text-slateBase-900 font-sans">
+
+  <!-- TOP HEADER -->
+  <header class="bg-white/95 backdrop-blur border-b border-slateBase-200 sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 py-3 flex items-center justify-between">
+      
+      <!-- Brand & Spec Badge -->
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-2xl bg-owlGreen-500/15 border border-owlGreen-500/30 flex items-center justify-center p-1 shadow-sm overflow-hidden">
+          <img src="assets/mascot.png" alt="Owlnudge Mascot" class="w-full h-full object-contain" />
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-display font-extrabold text-xl text-forest-900 tracking-tight">Owlnudge</h1>
+            <span class="px-2.5 py-0.5 rounded-full bg-butterYellow-300 text-forest-950 font-display text-xs font-bold border border-forest-900/10 shadow-sm">
+              Moodboard Matched ✨
+            </span>
+          </div>
+          <p class="text-[11px] text-forest-700 font-medium">ADHD Accountability & Gentle Recovery Mentor</p>
+        </div>
+      </div>
+
+      <!-- Quick Nav -->
+      <div class="flex items-center gap-2 text-xs font-medium">
+        <a href="#visual-tokens" class="px-3 py-1.5 rounded-lg text-slateBase-600 hover:text-slateBase-900 transition">Design System</a>
+        <a href="#components-spec" class="px-3 py-1.5 rounded-lg text-slateBase-600 hover:text-slateBase-900 transition">Component Spec</a>
+        <a href="#decisions" class="px-3 py-1.5 rounded-lg bg-pine-700 text-white font-semibold shadow-sm tactile-btn">Consent & Decisions</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO / SPEC SUMMARY -->
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-8">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+      <div class="lg:col-span-8 space-y-3">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slateBase-100 border border-slateBase-200 text-slateBase-700 text-xs font-mono">
+          <span class="w-2 h-2 rounded-full bg-pine-600"></span>
+          Skill Directive: design-taste-frontend Enforced
+        </div>
+        <h2 class="text-3xl sm:text-4xl font-extrabold text-slateBase-950 tracking-tight leading-tight">
+          Visual Language System & Screen Architecture Plan
+        </h2>
+        <p class="text-sm sm:text-base text-slateBase-600 leading-relaxed max-w-3xl">
+          Constructed with strict anti-slop rules: zero emojis (high-grade SVG icons only), single calibrated accent palette (Pine Green + Warm Amber buffer), high-contrast accessible typography, and deterministic local state architecture.
+        </p>
+      </div>
+
+      <!-- Quick Dial Settings Card -->
+      <div class="lg:col-span-4 bg-white border border-slateBase-200 p-5 rounded-2xl shadow-card">
+        <h3 class="text-xs font-bold text-slateBase-900 uppercase font-mono tracking-wider mb-3">Skill Dial Configuration</h3>
+        <div class="space-y-2.5 text-xs">
+          <div class="flex justify-between items-center pb-2 border-b border-slateBase-100">
+            <span class="text-slateBase-600">Design Variance:</span>
+            <span class="font-mono font-bold text-slateBase-900">8 / 10 (Asymmetric Bento)</span>
+          </div>
+          <div class="flex justify-between items-center pb-2 border-b border-slateBase-100">
+            <span class="text-slateBase-600">Motion Intensity:</span>
+            <span class="font-mono font-bold text-slateBase-900">6 / 10 (Physics + Waveforms)</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-slateBase-600">Visual Density:</span>
+            <span class="font-mono font-bold text-slateBase-900">4 / 10 (Calm / Low Cognitive Load)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SECTION 1: VISUAL LANGUAGE SYSTEM ================= -->
+  <section id="visual-tokens" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div class="border-b border-slateBase-200 pb-3 flex items-center justify-between">
+      <div>
+        <span class="text-xs font-mono font-bold text-pine-700 uppercase tracking-wide">01 · Visual Tokens</span>
+        <h3 class="text-xl font-bold text-slateBase-900 mt-0.5">Calibrated Color, Typography & Tactile Surfaces</h3>
+      </div>
+      <span class="text-xs text-slateBase-500 font-mono">Saturation &lt; 75% · Zero Purple Slop</span>
+    </div>
+
+    <!-- Color Palette Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      
+      <!-- Neutral Base -->
+      <div class="bg-white p-6 rounded-2xl border border-slateBase-200 shadow-card space-y-4">
+        <div>
+          <h4 class="text-sm font-bold text-slateBase-900">Neutral Canvas & Structure</h4>
+          <p class="text-xs text-slateBase-500 mt-1">Warm off-white base with high-contrast slate text for zero eye strain.</p>
+        </div>
+        <div class="space-y-2 font-mono text-xs">
+          <div class="flex items-center justify-between p-2.5 rounded-xl bg-[#fafaf8] border border-slateBase-200">
+            <span class="text-slateBase-800">Canvas Base</span>
+            <span class="text-slateBase-500">#FAFAF8</span>
+          </div>
+          <div class="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slateBase-200">
+            <span class="text-slateBase-800">Card Surface</span>
+            <span class="text-slateBase-500">#FFFFFF</span>
+          </div>
+          <div class="flex items-center justify-between p-2.5 rounded-xl bg-slateBase-900 text-white">
+            <span>Primary Text</span>
+            <span class="text-slateBase-400">#0F172A</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Primary Accent: Pine -->
+      <div class="bg-white p-6 rounded-2xl border border-slateBase-200 shadow-card space-y-4">
+        <div>
+          <h4 class="text-sm font-bold text-slateBase-900">Singular Accent: Deep Pine</h4>
+          <p class="text-xs text-slateBase-500 mt-1">Grounded, organic green that signals progress without overstimulating.</p>
+        </div>
+        <div class="space-y-2 font-mono text-xs">
+          <div class="flex items-center justify-between p-2.5 rounded-xl bg-pine-50 border border-pine-200 text-pine-900">
+            <span>Pine Soft (Tags)</span>
+            <span class="text-pine-600">#F2F7F4</span>
+          </div>
+          <div class="flex items-center justify-between p-2.5 rounded-xl bg-pine-700 text-white">
+            <span>Pine Primary (CTA)</span>
+            <span class="text-pine-200">#2E563E</span>
+          </div>
+          <div class="flex items-center justify-between p-2.5 rounded-xl bg-pine-950 text-white">
+            <span>Pine Dark</span>
+            <span class="text-pine-400">#0F1F17</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Functional Accent: Warm Amber (Buffer Only) -->
+      <div class="bg-white p-6 rounded-2xl border border-slateBase-200 shadow-card space-y-4">
+        <div>
+          <h4 class="text-sm font-bold text-slateBase-900">Functional Cue: Warm Amber</h4>
+          <p class="text-xs text-slateBase-500 mt-1">Dedicated exclusively to safety net Buffer Days & recovery notifications.</p>
+        </div>
+        <div class="space-y-2 font-mono text-xs">
+          <div class="flex items-center justify-between p-2.5 rounded-xl bg-amberWarm-50 border border-amberWarm-200 text-amberWarm-900">
+            <span>Buffer Cushion</span>
+            <span class="text-amberWarm-700">#FFFBEB</span>
+          </div>
+          <div class="flex items-center justify-between p-2.5 rounded-xl bg-amberWarm-600 text-white">
+            <span>Buffer Marker</span>
+            <span class="text-amberWarm-100">#D97706</span>
+          </div>
+          <div class="flex items-center justify-between p-2.5 rounded-xl bg-amberWarm-100 border border-amberWarm-300 text-amberWarm-950 font-bold">
+            <span>No-Shame Guard</span>
+            <span>Active</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ================= SECTION 2: COMPONENT & SCREEN ARCHITECTURE ================= -->
+  <section id="components-spec" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div class="border-b border-slateBase-200 pb-3 flex items-center justify-between">
+      <div>
+        <span class="text-xs font-mono font-bold text-pine-700 uppercase tracking-wide">02 · Component Architecture</span>
+        <h3 class="text-xl font-bold text-slateBase-900 mt-0.5">Slop-Free Screen Specifications & Interaction Contracts</h3>
+      </div>
+      <span class="text-xs text-slateBase-500 font-mono">React + Vite + Tailwind + Web Audio</span>
+    </div>
+
+    <!-- 4-Card Bento Architecture -->
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+
+      <!-- 1. Intelligent Slicer (Roadmap) -->
+      <div class="md:col-span-7 bg-white p-6 rounded-3xl border border-slateBase-200 shadow-card space-y-4">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-mono font-bold text-slateBase-500">COMPONENT 01</span>
+          <span class="text-[11px] font-mono text-pine-700 bg-pine-50 px-2 py-0.5 rounded border border-pine-200">Goal Slicer & Buffer Engine</span>
+        </div>
+
+        <h4 class="text-base font-bold text-slateBase-950">AI Goal Deconstructor & Buffer Inserter</h4>
+        <p class="text-xs text-slateBase-600 leading-relaxed">
+          Accepts vague, high-anxiety goals and generates a strict 3-milestone array. Automatically computes and inserts <strong>2 Buffer Days per 7-day interval</strong> to prevent timeline failure.
+        </p>
+
+        <!-- Mini Wireframe View -->
+        <div class="p-4 bg-[#f8faf8] border border-slateBase-200 rounded-2xl space-y-2 text-xs">
+          <div class="flex justify-between items-center pb-2 border-b border-slateBase-200">
+            <span class="font-bold text-slateBase-900">Milestone 1: 1D Recursion & Memoization</span>
+            <span class="text-[10px] font-mono bg-pine-100 text-pine-800 px-2 py-0.5 rounded">Active Focus</span>
+          </div>
+          <div class="grid grid-cols-3 gap-2 text-[11px] font-mono">
+            <div class="p-2 bg-white rounded-lg border border-slateBase-200 text-slateBase-700">Task 01: Stairs (25m)</div>
+            <div class="p-2 bg-white rounded-lg border border-slateBase-200 text-slateBase-700">Task 02: Robber (25m)</div>
+            <div class="p-2 bg-amberWarm-50 rounded-lg border border-amberWarm-200 text-amberWarm-800 font-bold">Buffer 01 (Rest)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. One-Tap Friction Triage -->
+      <div class="md:col-span-5 bg-white p-6 rounded-3xl border border-slateBase-200 shadow-card space-y-4">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-mono font-bold text-slateBase-500">COMPONENT 02</span>
+          <span class="text-[11px] font-mono text-slateBase-700 bg-slateBase-100 px-2 py-0.5 rounded">Daily Accountability</span>
+        </div>
+
+        <h4 class="text-base font-bold text-slateBase-950">1-Tap Morning State Triage</h4>
+        <p class="text-xs text-slateBase-600 leading-relaxed">
+          Zero-typing conversational check-in. Classifies state into <code class="text-pine-700 font-mono">FLOW</code>, <code class="text-slateBase-700 font-mono">MODERATE</code>, or <code class="text-amberWarm-700 font-mono">FROZEN</code>.
+        </p>
+
+        <div class="grid grid-cols-3 gap-2 text-center text-xs font-medium">
+          <div class="p-3 bg-white border border-slateBase-200 rounded-xl hover:border-pine-600 cursor-pointer transition tactile-btn">
+            <div class="w-3 h-3 rounded-full bg-emerald-500 mx-auto mb-1.5"></div>
+            <div class="font-bold text-slateBase-900 text-[11px]">Flow</div>
+          </div>
+          <div class="p-3 bg-white border border-slateBase-200 rounded-xl hover:border-pine-600 cursor-pointer transition tactile-btn">
+            <div class="w-3 h-3 rounded-full bg-slateBase-400 mx-auto mb-1.5"></div>
+            <div class="font-bold text-slateBase-900 text-[11px]">Moderate</div>
+          </div>
+          <div class="p-3 bg-amberWarm-50 border border-amberWarm-300 rounded-xl hover:border-amberWarm-500 cursor-pointer transition tactile-btn">
+            <div class="w-3 h-3 rounded-full bg-amberWarm-500 mx-auto mb-1.5"></div>
+            <div class="font-bold text-amberWarm-900 text-[11px]">Frozen</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Body Doubling & Web Audio Synthesizer -->
+      <div class="md:col-span-6 bg-white p-6 rounded-3xl border border-slateBase-200 shadow-card space-y-4">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-mono font-bold text-slateBase-500">COMPONENT 03</span>
+          <span class="text-[11px] font-mono text-pine-700 bg-pine-50 px-2 py-0.5 rounded border border-pine-200">Focus Engine</span>
+        </div>
+
+        <h4 class="text-base font-bold text-slateBase-950">Body Doubler & Web Audio Synthesizer</h4>
+        <p class="text-xs text-slateBase-600 leading-relaxed">
+          Generates continuous real-time brown/pink noise locally via HTML5 Web Audio API. Houses the sequential 30-second Dopamine Ladder.
+        </p>
+
+        <div class="p-4 bg-pine-50/60 border border-pine-200 rounded-2xl flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-white border border-pine-300 flex items-center justify-center text-pine-800 breathing-pulse">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="9"/>
+                <path d="M12 6v6l4 2"/>
+              </svg>
+            </div>
+            <div>
+              <div class="text-xs font-bold text-pine-950">Companion Active</div>
+              <div class="text-[10px] text-pine-700 font-mono">Brown Noise: 48kHz Synthesized</div>
+            </div>
+          </div>
+          <span class="font-mono text-lg font-bold text-slateBase-900">24:59</span>
+        </div>
+      </div>
+
+      <!-- 4. Zero-Shame Recovery Modal -->
+      <div class="md:col-span-6 bg-white p-6 rounded-3xl border border-slateBase-200 shadow-card space-y-4">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-mono font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">KEY USP</span>
+          <span class="text-[11px] font-mono text-slateBase-500">Recovery Engine</span>
+        </div>
+
+        <h4 class="text-base font-bold text-slateBase-950">Zero-Shame Recovery & Buffer Ledger</h4>
+        <p class="text-xs text-slateBase-600 leading-relaxed">
+          Activates when inactivity &gt; 1 day is detected. Automatically consumes available buffer days, aligns timeline, and provides a 60-second dopamine win.
+        </p>
+
+        <div class="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl flex items-center justify-between text-xs">
+          <div>
+            <div class="font-bold text-emerald-950">1 Buffer Day Absorbed</div>
+            <div class="text-[11px] text-emerald-800">Target Date: 100% Maintained</div>
+          </div>
+          <button class="px-3 py-1.5 bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm tactile-btn">
+            Claim Restart Win
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ================= SECTION 3: DECISIONS & USER CONSENT ================= -->
+  <section id="decisions" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div class="border-b border-slateBase-200 pb-3">
+      <span class="text-xs font-mono font-bold text-amberWarm-700 uppercase tracking-wide">03 · Architectural Alignment & Consent</span>
+      <h3 class="text-xl font-bold text-slateBase-900 mt-0.5">Key Decisions Requiring Your Consent Before Execution</h3>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+      
+      <!-- Decision 1 -->
+      <div class="bg-white p-6 rounded-2xl border border-slateBase-200 shadow-card space-y-3">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-pine-600"></span>
+          <h4 class="text-sm font-bold text-slateBase-900">1. Local AI Engine & Fallback Strategy</h4>
+        </div>
+        <p class="text-slateBase-600 leading-relaxed">
+          We will implement a pluggable adapter:
+          <br>• <strong>Primary:</strong> Local Ollama (`http://localhost:11434` calling `llama3.2` / `mistral` with structured JSON mode).
+          <br>• <strong>Fallback:</strong> Deterministic rule-based prompt simulator so that if Ollama is not started, the app never crashes during demo.
+        </p>
+        <span class="inline-block px-2.5 py-1 bg-pine-50 text-pine-800 font-mono font-semibold rounded border border-pine-200">
+          Recommended: Dual Adapter (Ollama + Zero-Fail Fallback)
+        </span>
+      </div>
+
+      <!-- Decision 2 -->
+      <div class="bg-white p-6 rounded-2xl border border-slateBase-200 shadow-card space-y-3">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-pine-600"></span>
+          <h4 class="text-sm font-bold text-slateBase-900">2. Real-Time Web Audio vs Static Audio Files</h4>
+        </div>
+        <p class="text-slateBase-600 leading-relaxed">
+          We will generate brown noise and rain sounds <strong>purely in code</strong> using the browser's native `AudioContext` and noise mathematical curves.
+          <br>• Zero external MP3 downloads or copyright issues.
+          <br>• Instant offline performance and continuous uninterrupted loops.
+        </p>
+        <span class="inline-block px-2.5 py-1 bg-pine-50 text-pine-800 font-mono font-semibold rounded border border-pine-200">
+          Recommended: Native Web Audio Synthesis
+        </span>
+      </div>
+
+      <!-- Decision 3 -->
+      <div class="bg-white p-6 rounded-2xl border border-slateBase-200 shadow-card space-y-3">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-pine-600"></span>
+          <h4 class="text-sm font-bold text-slateBase-900">3. Data Persistence (Local JSON + Markdown Export)</h4>
+        </div>
+        <p class="text-slateBase-600 leading-relaxed">
+          We will store user roadmap, check-in history, and buffer ledger in browser `localStorage` + offer instant 1-click export to a clean human-readable Markdown file (`roadmap.md`).
+        </p>
+        <span class="inline-block px-2.5 py-1 bg-pine-50 text-pine-800 font-mono font-semibold rounded border border-pine-200">
+          Recommended: LocalStorage + Markdown Exporter
+        </span>
+      </div>
+
+      <!-- Decision 4 -->
+      <div class="bg-white p-6 rounded-2xl border border-slateBase-200 shadow-card space-y-3">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-pine-600"></span>
+          <h4 class="text-sm font-bold text-slateBase-900">4. React + Vite + Tailwind CSS Architecture</h4>
+        </div>
+        <p class="text-slateBase-600 leading-relaxed">
+          Zero-bloat, ultra-responsive Single Page Application running on standard Vite local port, fully modularized by component leaf architecture.
+        </p>
+        <span class="inline-block px-2.5 py-1 bg-pine-50 text-pine-800 font-mono font-semibold rounded border border-pine-200">
+          Recommended: React + Vite + Tailwind
+        </span>
+      </div>
+
+    </div>
+  </section>
+
+</body>
+</html>
