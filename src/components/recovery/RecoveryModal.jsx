@@ -27,8 +27,8 @@ export default function RecoveryModal({ isOpen, onClose, bufferDaysRemaining = 2
         
         {/* Top Mascot & Welcome Dialogue */}
         <div className="flex items-start gap-4">
-          <div className="w-16 h-16 shrink-0 breath-cycle">
-            <img src="/assets/mascot.png" alt="Owlnudge Mentor" className="w-full h-full object-contain" />
+          <div className="w-18 h-18 shrink-0 p-2 rounded-2xl bg-white/90 border border-emerald-200/80 shadow-sm flex items-center justify-center breath-cycle">
+            <img src="/assets/mascot.png" alt="Owlnudge Mentor" className="w-full h-full object-contain drop-shadow-sm" />
           </div>
           <div className="space-y-1">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-butterYellow-300 text-forest-950 font-display font-bold text-xs shadow-sm">

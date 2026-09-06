@@ -94,11 +94,11 @@ export default function BodyDoubler({ activeTask, onCompleteSession }) {
           
           {/* Avatar with Gentle Breath */}
           <div className="relative">
-            <div className={`w-32 h-32 mx-auto ${isRunning ? 'breath-cycle' : ''} flex items-center justify-center`}>
-              <img src="/assets/mascot.png" alt="Owlnudge Companion" className="w-full h-full object-contain drop-shadow-md" />
+            <div className={`w-36 h-36 mx-auto ${isRunning ? 'breath-cycle' : ''} bg-gradient-to-b from-white to-emerald-50/60 border border-emerald-200/80 rounded-3xl p-3 flex items-center justify-center shadow-sm`}>
+              <img src="/assets/mascot.png" alt="Owlnudge Companion" className="w-full h-full object-contain filter drop-shadow-md" />
             </div>
             {isRunning && (
-              <span className="absolute bottom-1 right-2 px-2 py-0.5 rounded-full bg-owlGreen-600 text-white font-mono text-[10px] font-bold shadow-sm">
+              <span className="absolute -bottom-2 right-4 px-2.5 py-0.5 rounded-full bg-owlGreen-600 text-white font-mono text-[10px] font-bold shadow-sm border border-white">
                 Quietly with you
               </span>
             )}
@@ -304,9 +304,9 @@ export default function BodyDoubler({ activeTask, onCompleteSession }) {
       {showStuckModal && (
         <div className="fixed inset-0 z-50 bg-forest-950/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 max-w-md w-full border border-emerald-200 shadow-2xl space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-butterYellow-300 flex items-center justify-center text-xl shrink-0">
-                <img src="/assets/mascot.png" alt="Mascot" className="w-8 h-8 object-contain" />
+            <div className="flex items-center gap-3.5">
+              <div className="w-14 h-14 rounded-2xl bg-white border border-emerald-200 p-2 flex items-center justify-center shrink-0 shadow-sm">
+                <img src="/assets/mascot.png" alt="Mascot" className="w-full h-full object-contain filter drop-shadow-sm" />
               </div>
               <div>
                 <h4 className="font-display font-bold text-forest-950 text-base">"Hey Alex, take a breath."</h4>

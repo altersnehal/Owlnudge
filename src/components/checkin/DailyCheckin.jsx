@@ -47,9 +47,9 @@ export default function DailyCheckin({ onLaunchBodyDouble, activeTask }) {
         </div>
 
         {/* Coach Dialogue */}
-        <div className="p-4 bg-emerald-50/70 border border-emerald-200/80 rounded-2xl flex items-start gap-4">
-          <div className="w-14 h-14 shrink-0 breath-cycle">
-            <img src="/assets/mascot.png" alt="Owlnudge Mentor" className="w-full h-full object-contain" />
+        <div className="p-4 sm:p-5 bg-gradient-to-r from-emerald-50/90 to-white border border-emerald-200/90 rounded-2xl flex items-center gap-4 shadow-sm">
+          <div className="w-16 h-16 rounded-2xl bg-white border border-emerald-200/80 p-2 shrink-0 breath-cycle flex items-center justify-center shadow-sm">
+            <img src="/assets/mascot.png" alt="Owlnudge Mentor" className="w-full h-full object-contain filter drop-shadow-sm" />
           </div>
           <div className="space-y-1">
             <h3 className="font-display font-bold text-forest-950 text-base">

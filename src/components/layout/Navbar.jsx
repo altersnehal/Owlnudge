@@ -14,9 +14,9 @@ export default function Navbar({ activeTab, setActiveTab, bufferCount, onSimulat
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         
         {/* Brand with Mascot */}
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-owlGreen-500/15 border border-owlGreen-500/30 flex items-center justify-center p-1 shadow-sm overflow-hidden shrink-0">
-            <img src="/assets/mascot.png" alt="Owlnudge Mascot" className="w-full h-full object-contain" />
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-white border border-emerald-200/80 shadow-sm flex items-center justify-center p-1.5 shrink-0 transition-transform hover:scale-105">
+            <img src="/assets/mascot.png" alt="Owlnudge Mascot" className="w-full h-full object-contain filter drop-shadow-sm" />
           </div>
           <div>
             <div className="flex items-center gap-2">

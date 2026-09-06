@@ -106,9 +106,9 @@ export default function GoalPlanner({ roadmap, onGenerateRoadmap, onSelectTaskFo
           </div>
 
           {/* Mascot Coaching Widget */}
-          <div className="lg:col-span-4 bg-emerald-50/70 border border-emerald-200 rounded-3xl p-5 text-center space-y-3">
-            <div className="w-28 h-28 mx-auto breath-cycle flex items-center justify-center">
-              <img src="/assets/mascot.png" alt="Owlnudge Mascot" className="w-full h-full object-contain" />
+          <div className="lg:col-span-4 bg-gradient-to-b from-white to-emerald-50/70 border border-emerald-200/90 rounded-3xl p-6 text-center space-y-3.5 shadow-sm">
+            <div className="w-32 h-32 mx-auto breath-cycle flex items-center justify-center p-2">
+              <img src="/assets/mascot.png" alt="Owlnudge Mascot" className="w-full h-full object-contain filter drop-shadow-md" />
             </div>
             <div className="space-y-1">
               <h3 className="font-display font-bold text-forest-950 text-sm">Buffer Day Guarantee</h3>
