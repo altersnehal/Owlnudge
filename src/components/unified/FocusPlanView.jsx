@@ -17,7 +17,8 @@ import {
   ChevronUp, 
   FileText, 
   Upload, 
-  Search
+  Search,
+  Sliders
 } from 'lucide-react';
 import { audioService } from '../../services/audioService';
 import { readLocalFile } from '../../services/contentFetcher';
@@ -44,6 +45,10 @@ export default function FocusPlanView({
   const [showStuckModal, setShowStuckModal] = useState(false);
   const [isSessionCompleted, setIsSessionCompleted] = useState(false);
 
+  // Custom / Manual Time Selection State
+  const [isCustomTimeOpen, setIsCustomTimeOpen] = useState(false);
+  const [customMinutesInput, setCustomMinutesInput] = useState(25);
+
   // Ingestion State
   const [goalInput, setGoalInput] = useState(roadmap?.title || "Master Dynamic Programming & Recursion");
   const [targetWeeks, setTargetWeeks] = useState(3);
@@ -61,7 +66,7 @@ export default function FocusPlanView({
     setIsSessionCompleted(false);
   }, [activeTask?.id]);
 
-  // Stopwatch Timer loop with mechanical "tik-tik" sound (Default ON unless muted)
+  // Stopwatch Timer loop with mechanical "tik-tik" sound
   useEffect(() => {
     let interval = null;
     if (isRunning && secondsLeft > 0) {
@@ -81,7 +86,17 @@ export default function FocusPlanView({
   }, [isRunning, secondsLeft, isAudioMuted]);
 
   const handleSelectBurstDuration = (minutes) => {
+    setIsCustomTimeOpen(false);
     const totalSecs = minutes * 60;
+    setTimerDuration(totalSecs);
+    setSecondsLeft(totalSecs);
+    setIsRunning(false);
+  };
+
+  const handleApplyCustomMinutes = (mins) => {
+    const parsed = Math.max(1, Math.min(180, Number(mins) || 25));
+    setCustomMinutesInput(parsed);
+    const totalSecs = parsed * 60;
     setTimerDuration(totalSecs);
     setSecondsLeft(totalSecs);
     setIsRunning(false);
@@ -204,7 +219,7 @@ export default function FocusPlanView({
       {/* STEP 1 (TOP): INTUITIVE MINIMALIST UNIFIED SEARCH & SLICER BAR             */}
       {/* ========================================================================= */}
       <section className="text-left">
-        <form onSubmit={handleGenerate} className="bg-white rounded-3xl p-2.5 sm:p-3 shadow-[0_10px_30px_-5px_rgba(15,61,35,0.04)] border border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 transition-all">
+        <form onSubmit={handleGenerate} className="bg-white rounded-3xl p-2 sm:p-2.5 shadow-[0_10px_30px_-5px_rgba(15,61,35,0.04)] border border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 transition-all">
           
           {/* Search / URL / Topic Input */}
           <div className="flex-1 flex items-center gap-2 px-3 py-1.5 bg-[#F8FAF8] rounded-2xl border border-slate-200/50">
@@ -256,9 +271,9 @@ export default function FocusPlanView({
               className="bg-[#F8FAF8] text-forest-950 text-xs font-semibold rounded-xl px-2 py-2 border border-slate-200/60 focus:outline-none cursor-pointer"
               title="Timeline Duration"
             >
-              <option value={2}>2 Weeks</option>
-              <option value={3}>3 Weeks</option>
-              <option value={4}>4 Weeks</option>
+              <option value={2}>2w</option>
+              <option value={3}>3w</option>
+              <option value={4}>4w</option>
             </select>
 
             {/* Daily Cap Selector Pill */}
@@ -268,9 +283,9 @@ export default function FocusPlanView({
               className="bg-[#F8FAF8] text-forest-950 text-xs font-semibold rounded-xl px-2 py-2 border border-slate-200/60 focus:outline-none cursor-pointer"
               title="Daily Focus Cap"
             >
-              <option value={30}>30m/day</option>
-              <option value={45}>45m/day</option>
-              <option value={60}>60m/day</option>
+              <option value={30}>30m</option>
+              <option value={45}>45m</option>
+              <option value={60}>60m</option>
             </select>
 
             {/* Slice Goal CTA */}
@@ -323,18 +338,18 @@ export default function FocusPlanView({
           </p>
         </div>
 
-        {/* Apple-Style Stopwatch Digital Timer with Burst Selectors */}
+        {/* Apple-Style Stopwatch Digital Timer with Presets & Manual Time Selection */}
         <div className="space-y-3 select-none">
           <div className="font-mono font-semibold text-5xl sm:text-7xl text-forest-950 tracking-tight">
             {formatTime(secondsLeft)}
           </div>
 
-          {/* Burst Pacing Presets */}
-          <div className="flex items-center justify-center gap-1.5 pt-0.5">
+          {/* Attention Burst Pacing Selectors with Manual Custom Option */}
+          <div className="flex flex-wrap items-center justify-center gap-1.5 pt-0.5">
             <button
               onClick={() => handleSelectBurstDuration(10)}
               className={`px-3 py-1 rounded-full text-[11px] font-mono transition active:scale-95 ${
-                timerDuration === 10 * 60
+                timerDuration === 10 * 60 && !isCustomTimeOpen
                   ? 'bg-forest-950 text-white font-bold shadow-xs'
                   : 'bg-white hover:bg-slate-100 text-slate-500'
               }`}
@@ -344,7 +359,7 @@ export default function FocusPlanView({
             <button
               onClick={() => handleSelectBurstDuration(15)}
               className={`px-3 py-1 rounded-full text-[11px] font-mono transition active:scale-95 ${
-                timerDuration === 15 * 60
+                timerDuration === 15 * 60 && !isCustomTimeOpen
                   ? 'bg-forest-950 text-white font-bold shadow-xs'
                   : 'bg-white hover:bg-slate-100 text-slate-500'
               }`}
@@ -354,14 +369,47 @@ export default function FocusPlanView({
             <button
               onClick={() => handleSelectBurstDuration(25)}
               className={`px-3 py-1 rounded-full text-[11px] font-mono transition active:scale-95 ${
-                timerDuration === 25 * 60
+                timerDuration === 25 * 60 && !isCustomTimeOpen
                   ? 'bg-forest-950 text-white font-bold shadow-xs'
                   : 'bg-white hover:bg-slate-100 text-slate-500'
               }`}
             >
               25m Sprint
             </button>
+
+            {/* Manual / Custom Time Button */}
+            <button
+              onClick={() => setIsCustomTimeOpen(!isCustomTimeOpen)}
+              className={`px-3 py-1 rounded-full text-[11px] font-mono transition active:scale-95 flex items-center gap-1 ${
+                isCustomTimeOpen || (timerDuration !== 10 * 60 && timerDuration !== 15 * 60 && timerDuration !== 25 * 60)
+                  ? 'bg-emerald-600 text-white font-bold shadow-xs'
+                  : 'bg-white hover:bg-slate-100 text-slate-500'
+              }`}
+            >
+              <Sliders className="w-3 h-3" />
+              <span>Manual</span>
+            </button>
           </div>
+
+          {/* Inline Custom Minutes Stepper / Input (Manual Option) */}
+          {isCustomTimeOpen && (
+            <div className="p-3 bg-white rounded-2xl max-w-xs mx-auto shadow-sm border border-slate-100 flex items-center justify-center gap-2 animate-in fade-in duration-150">
+              <span className="text-xs text-slate-500 font-sans">Set duration:</span>
+              <input
+                type="number"
+                min="1"
+                max="180"
+                value={customMinutesInput}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setCustomMinutesInput(val);
+                  handleApplyCustomMinutes(val);
+                }}
+                className="w-16 px-2 py-1 bg-[#F8FAF8] rounded-lg text-center font-mono font-bold text-forest-950 text-sm border border-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+              <span className="text-xs font-mono text-slate-400">mins</span>
+            </div>
+          )}
         </div>
 
         {/* Active Task Card with Intuition & Expandable Micro-Step Reading */}
@@ -375,7 +423,7 @@ export default function FocusPlanView({
               </span>
             </div>
             <span className="text-xs font-mono text-slate-400">
-              ~{activeTask?.durationMinutes || 25} mins
+              ~{Math.round(timerDuration / 60)} mins
             </span>
           </div>
 
