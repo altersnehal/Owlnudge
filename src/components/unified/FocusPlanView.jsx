@@ -10,17 +10,20 @@ import {
   Clock, 
   ArrowRight, 
   Shield, 
-  Search, 
-  Link2, 
   BookOpen, 
   Lightbulb, 
   Check, 
   RotateCcw,
   ChevronDown,
   ChevronUp,
-  SlidersHorizontal
+  FileText,
+  Upload,
+  Link2,
+  Bell,
+  BellOff
 } from 'lucide-react';
 import { audioService } from '../../services/audioService';
+import { readLocalFile } from '../../services/contentFetcher';
 import confetti from 'canvas-confetti';
 
 export default function FocusPlanView({ 
@@ -38,7 +41,9 @@ export default function FocusPlanView({
   const [secondsLeft, setSecondsLeft] = useState(25 * 60);
   const [isRunning, setIsRunning] = useState(false);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const [isTickingActive, setIsTickingActive] = useState(true);
   const [activeStepIndex, setActiveStepIndex] = useState(0);
+  const [expandedStepIndex, setExpandedStepIndex] = useState(0); // auto-expand active step's reading
   const [showStuckModal, setShowStuckModal] = useState(false);
   const [isSessionCompleted, setIsSessionCompleted] = useState(false);
 
@@ -47,27 +52,37 @@ export default function FocusPlanView({
   const [targetWeeks, setTargetWeeks] = useState(3);
   const [dailyMinutes, setDailyMinutes] = useState(45);
   const [openMilestoneId, setOpenMilestoneId] = useState(roadmap?.milestones?.[0]?.id || 'm1');
+  const [uploadedFileName, setUploadedFileName] = useState(null);
 
   const focusRoomRef = useRef(null);
+  const fileInputRef = useRef(null);
 
-  // Sync timer with active task or preset selection
+  // Sync active task
   useEffect(() => {
     setActiveStepIndex(0);
+    setExpandedStepIndex(0);
     setIsSessionCompleted(false);
   }, [activeTask?.id]);
 
-  // Timer countdown
+  // Stopwatch Timer loop with procedural mechanical "tik-tik" sound
   useEffect(() => {
     let interval = null;
     if (isRunning && secondsLeft > 0) {
       interval = setInterval(() => {
-        setSecondsLeft((prev) => prev - 1);
+        setSecondsLeft((prev) => {
+          if (prev <= 1) return 0;
+          // Play mechanical tick sound on each second
+          if (isTickingActive) {
+            audioService.playTick(prev % 2 === 1, 0.08);
+          }
+          return prev - 1;
+        });
       }, 1000);
     } else if (secondsLeft === 0 && isRunning) {
       handleCompleteSession(true);
     }
     return () => clearInterval(interval);
-  }, [isRunning, secondsLeft]);
+  }, [isRunning, secondsLeft, isTickingActive]);
 
   const handleSelectBurstDuration = (minutes) => {
     const totalSecs = minutes * 60;
@@ -76,7 +91,7 @@ export default function FocusPlanView({
     setIsRunning(false);
   };
 
-  const toggleAudio = () => {
+  const toggleBrownNoise = () => {
     if (isAudioPlaying) {
       audioService.stop();
       setIsAudioPlaying(false);
@@ -86,17 +101,26 @@ export default function FocusPlanView({
     }
   };
 
+  const toggleTickingSound = () => {
+    const nextState = !isTickingActive;
+    setIsTickingActive(nextState);
+    audioService.setTickingEnabled(nextState);
+  };
+
   const handleStepComplete = (index) => {
     if (index === activeStepIndex) {
       const nextIndex = index + 1;
       setActiveStepIndex(nextIndex);
+      setExpandedStepIndex(nextIndex);
       confetti({
-        particleCount: 30,
-        spread: 50,
+        particleCount: 35,
+        spread: 55,
         origin: { y: 0.65 },
         colors: ['#16A34A', '#FEF08A']
       });
-      if (nextIndex >= (activeTask?.microSteps?.length || 3)) {
+
+      const totalSteps = activeTask?.microSteps?.length || 3;
+      if (nextIndex >= totalSteps) {
         handleCompleteSession(false);
       }
     }
@@ -108,8 +132,8 @@ export default function FocusPlanView({
     setIsAudioPlaying(false);
     setIsSessionCompleted(true);
     confetti({
-      particleCount: 80,
-      spread: 90,
+      particleCount: 85,
+      spread: 95,
       origin: { y: 0.55 },
       colors: ['#16A34A', '#34D399', '#FEF08A']
     });
@@ -122,6 +146,7 @@ export default function FocusPlanView({
     setIsSessionCompleted(false);
     setSecondsLeft(timerDuration);
     setActiveStepIndex(0);
+    setExpandedStepIndex(0);
     setIsRunning(false);
   };
 
@@ -137,7 +162,27 @@ export default function FocusPlanView({
     onGenerateRoadmap({ goalText: goalInput.trim(), targetWeeks, dailyMinutes });
   };
 
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadedFileName(file.name);
+      const fileData = await readLocalFile(file);
+      setGoalInput(`Resource: ${fileData.title}`);
+      onGenerateRoadmap({
+        goalText: fileData.title,
+        targetWeeks,
+        dailyMinutes,
+        fileData: fileData
+      });
+    } catch (err) {
+      console.error('File read error:', err);
+    }
+  };
+
   const handlePresetSelect = (presetText) => {
+    setUploadedFileName(null);
     setGoalInput(presetText);
     onGenerateRoadmap({ goalText: presetText, targetWeeks, dailyMinutes });
   };
@@ -149,9 +194,21 @@ export default function FocusPlanView({
   };
 
   const microSteps = activeTask?.microSteps || [
-    'Open problem description and read Example 1 only (30 secs)',
-    'Write down base cases n=1 and n=2 on a napkin (2 mins)',
-    'Write loop recurrence: dp[i] = dp[i-1] + dp[i-2] (10 mins)'
+    {
+      title: 'Open LeetCode #70 & Read Base Cases (30s)',
+      time: '45s',
+      readingMaterial: `### 🧗 Climbing Stairs Intuition\n\nTo reach step \`n\`, you can only come from:\n1. Step \`n - 1\` (by taking a 1-step leap)\n2. Step \`n - 2\` (by taking a 2-step leap)\n\nTherefore, total ways to reach step \`n\` is simply:\n\`ways(n) = ways(n - 1) + ways(n - 2)\``
+    },
+    {
+      title: 'Visual Recurrence & Napkin Drawing (2m)',
+      time: '2m',
+      readingMaterial: `### 🌲 The Subproblem Call Tree\n\nNotice that \`ways(4)\` calls \`ways(3)\` and \`ways(2)\`.\nWithout memoization, subproblems are re-calculated repeatedly.\nWith DP caching: \`dp[i] = dp[i-1] + dp[i-2]\`, every step is calculated exactly once in O(n) time.`
+    },
+    {
+      title: 'Code the 3-line State Transition (10m)',
+      time: '10m',
+      readingMaterial: `### 💻 3-Line Solution Pattern\n\n\`\`\`javascript\nlet prev1 = 1, prev2 = 2;\nfor (let i = 3; i <= n; i++) {\n  let curr = prev1 + prev2;\n  prev1 = prev2;\n  prev2 = curr;\n}\nreturn prev2;\n\`\`\``
+    }
   ];
 
   const milestones = roadmap?.milestones || [];
@@ -160,7 +217,7 @@ export default function FocusPlanView({
     <div className="space-y-12 max-w-xl mx-auto">
       
       {/* ========================================================================= */}
-      {/* SECTION 1: THE BODY DOUBLER FOCUS ROOM (Tactile ADHD Activation Engine)  */}
+      {/* SECTION 1: THE BODY DOUBLER FOCUS ROOM (Tactile Stopwatch & Reader)      */}
       {/* ========================================================================= */}
       <section ref={focusRoomRef} className="space-y-8 text-center pt-2">
         
@@ -173,18 +230,18 @@ export default function FocusPlanView({
             {isSessionCompleted
               ? "Session completed! Celebrate this micro-win."
               : isRunning
-              ? "I'm sitting beside you. Just finish Step 1."
-              : "Ready when you are. Press Start Sprint to initiate flow."}
+              ? "I'm sitting beside you. Read Step 1 and press Done."
+              : "Ready when you are. Press Start Sprint to begin."}
           </p>
         </div>
 
-        {/* Apple-Style Digital Timer & Attention Pacing Selector */}
+        {/* Apple-Style Stopwatch Timer with Burst Selectors */}
         <div className="space-y-3 select-none">
           <div className="font-mono font-semibold text-5xl sm:text-7xl text-forest-950 tracking-tight">
             {formatTime(secondsLeft)}
           </div>
 
-          {/* Attention Burst Pacing Selector (Addressing Attention Pendulum) */}
+          {/* Burst Pacing Presets */}
           <div className="flex items-center justify-center gap-1.5 pt-1">
             <button
               onClick={() => handleSelectBurstDuration(10)}
@@ -219,7 +276,7 @@ export default function FocusPlanView({
           </div>
         </div>
 
-        {/* Active Task Card with Intuition Callout (Defeating Leaky Bucket) */}
+        {/* Active Task Card with Intuition & Expandable Reading Material */}
         <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-[0_12px_32px_-4px_rgba(15,61,35,0.06),0_2px_6px_0_rgba(0,0,0,0.02)] text-left space-y-4">
           
           <div className="flex items-center justify-between">
@@ -239,7 +296,7 @@ export default function FocusPlanView({
               {activeTask?.title || "Climbing Stairs (Visualizing Base Cases)"}
             </h3>
 
-            {/* Working Memory Anchor Flashcard */}
+            {/* Pinned Intuition Anchor (Defeating Leaky Bucket) */}
             {activeTask?.intuitionTip && (
               <div className="mt-2.5 p-3 rounded-xl bg-[#F8FAF8] flex items-start gap-2.5 border-l-2 border-emerald-500">
                 <Lightbulb className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
@@ -250,17 +307,20 @@ export default function FocusPlanView({
             )}
           </div>
 
-          {/* Sequential Dopamine Ladder (Micro-Steps to Conquer Wall of Awful) */}
-          <div className="space-y-2 pt-1">
+          {/* Expandable / Collapsible Micro-Steps with Inline Reading Material */}
+          <div className="space-y-2.5 pt-1">
             <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wide block">
-              Sequential Micro-Steps
+              Micro-Steps & Reading Material
             </span>
 
             {microSteps.map((step, idx) => {
               const isCurrent = idx === activeStepIndex;
               const isDone = idx < activeStepIndex || isSessionCompleted;
-              const isUpcoming = idx > activeStepIndex && !isSessionCompleted;
+              const isExpanded = expandedStepIndex === idx;
+
               const stepTitle = typeof step === 'string' ? step : step.title;
+              const stepTime = typeof step === 'string' ? '2m' : step.time;
+              const reading = typeof step === 'object' ? step.readingMaterial : null;
 
               if (isDone) {
                 return (
@@ -274,30 +334,7 @@ export default function FocusPlanView({
                       </span>
                       <span className="line-through">{stepTitle}</span>
                     </div>
-                    <span className="text-[10px] font-mono text-emerald-700">Done</span>
-                  </div>
-                );
-              }
-
-              if (isCurrent) {
-                return (
-                  <div 
-                    key={idx} 
-                    className="p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-200/60 flex items-center justify-between gap-3 transition"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center font-mono text-xs font-bold shrink-0">
-                        {idx + 1}
-                      </span>
-                      <p className="text-xs font-bold text-forest-950">{stepTitle}</p>
-                    </div>
-                    <button
-                      onClick={() => handleStepComplete(idx)}
-                      className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs active:scale-95 transition shrink-0 flex items-center gap-1"
-                    >
-                      <Check className="w-3.5 h-3.5" />
-                      <span>Done</span>
-                    </button>
+                    <span className="text-[10px] font-mono text-emerald-700">Completed</span>
                   </div>
                 );
               }
@@ -305,12 +342,71 @@ export default function FocusPlanView({
               return (
                 <div 
                   key={idx} 
-                  className={`p-3 rounded-xl flex items-center gap-2.5 transition ${isUpcoming && idx === activeStepIndex + 1 ? 'opacity-45' : 'opacity-25'}`}
+                  className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
+                    isCurrent 
+                      ? 'bg-emerald-50/50 border-emerald-300 shadow-xs' 
+                      : 'bg-[#F8FAF8] border-slate-100 opacity-60'
+                  }`}
                 >
-                  <span className="w-4 h-4 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center font-mono text-[10px] shrink-0">
-                    {idx + 1}
-                  </span>
-                  <span className="text-xs text-slate-500 font-sans">{stepTitle}</span>
+                  {/* Step Header Toggle */}
+                  <div 
+                    onClick={() => setExpandedStepIndex(isExpanded ? null : idx)}
+                    className="p-3.5 flex items-center justify-between gap-3 cursor-pointer select-none hover:bg-emerald-50/80 transition"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span className={`w-5 h-5 rounded-full flex items-center justify-center font-mono text-xs font-bold shrink-0 ${
+                        isCurrent ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600'
+                      }`}>
+                        {idx + 1}
+                      </span>
+                      <div>
+                        <p className="text-xs font-bold text-forest-950">{stepTitle}</p>
+                        <p className="text-[10px] text-slate-400 font-mono">~{stepTime} · Tap to view reading material</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      {reading && (
+                        <span className="text-[10px] font-mono text-emerald-800 bg-white px-2 py-0.5 rounded-full flex items-center gap-1 border border-emerald-200/50">
+                          <BookOpen className="w-3 h-3" />
+                          <span>Reading</span>
+                        </span>
+                      )}
+                      <span className="text-slate-400">
+                        {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Collapsible Reading Material Container */}
+                  {isExpanded && (
+                    <div className="px-4 pb-4 pt-2 border-t border-emerald-100 bg-white/90 space-y-3 text-left animate-in fade-in duration-150">
+                      
+                      {reading ? (
+                        <div className="p-3.5 bg-[#F8FAF8] rounded-xl text-xs text-forest-950 font-sans leading-relaxed whitespace-pre-line border border-emerald-100/60 max-h-56 overflow-y-auto">
+                          {reading}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-slate-500 font-sans italic">
+                          Execute this micro-step in your workspace, code editor, or notepad.
+                        </p>
+                      )}
+
+                      {/* Explicit "Done / Completed" Button on Reading Material */}
+                      {isCurrent && (
+                        <div className="flex items-center justify-between pt-1">
+                          <span className="text-[11px] text-slate-400 font-sans">Done reading?</span>
+                          <button
+                            onClick={() => handleStepComplete(idx)}
+                            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm active:scale-95 transition flex items-center gap-1.5"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Done & Complete Step</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -318,7 +414,7 @@ export default function FocusPlanView({
 
         </div>
 
-        {/* Tactile Control Bar with Lucide Icons */}
+        {/* Tactile Control Bar with Brown Noise + Mechanical Tik-Tik Sound */}
         <div className="flex flex-wrap items-center justify-center gap-2.5 pt-1">
           
           {/* Start / Pause Sprint */}
@@ -344,10 +440,28 @@ export default function FocusPlanView({
             <span>Done</span>
           </button>
 
+          {/* Tik-Tik Mechanical Clock Sound Toggle */}
+          <button
+            onClick={toggleTickingSound}
+            className={`px-3.5 py-2.5 rounded-full text-xs font-medium flex items-center gap-1.5 shadow-sm active:scale-95 transition-all duration-150 ${
+              isTickingActive
+                ? 'bg-emerald-100 text-emerald-900 font-semibold'
+                : 'bg-white hover:bg-slate-50 text-slate-500'
+            }`}
+            title="Toggle soothing mechanical clock tik-tik sound"
+          >
+            {isTickingActive ? (
+              <Bell className="w-3.5 h-3.5 text-emerald-700 animate-pulse" />
+            ) : (
+              <BellOff className="w-3.5 h-3.5 text-slate-400" />
+            )}
+            <span>{isTickingActive ? 'Tik-Tik (On)' : 'Tik-Tik'}</span>
+          </button>
+
           {/* Brown Noise Audio Generator */}
           <button
-            onClick={toggleAudio}
-            className={`px-4 py-2.5 rounded-full text-xs font-medium flex items-center gap-2 shadow-sm active:scale-95 transition-all duration-150 ${
+            onClick={toggleBrownNoise}
+            className={`px-3.5 py-2.5 rounded-full text-xs font-medium flex items-center gap-1.5 shadow-sm active:scale-95 transition-all duration-150 ${
               isAudioPlaying
                 ? 'bg-emerald-100 text-emerald-900 font-semibold'
                 : 'bg-white hover:bg-slate-50 text-forest-900'
@@ -434,7 +548,7 @@ export default function FocusPlanView({
       </section>
 
       {/* ========================================================================= */}
-      {/* SECTION 2: THE LIVING PLAN & DECONSTRUCTED ROADMAP (Anti-Overwhelm Slicer) */}
+      {/* SECTION 2: THE LIVING PLAN & CONTENT INGESTION (URLs, PDFs, MD Files)     */}
       {/* ========================================================================= */}
       <section className="space-y-6 pt-6 border-t border-slate-200/60 text-left">
         
@@ -442,10 +556,10 @@ export default function FocusPlanView({
           <div>
             <h2 className="font-display font-bold text-lg sm:text-xl text-forest-950 tracking-tight flex items-center gap-2">
               <BookOpen className="w-5 h-5 text-emerald-700" />
-              <span>Your Living Curriculum Roadmap</span>
+              <span>Living Curriculum & Content Ingestion</span>
             </h2>
             <p className="text-xs text-slate-500 font-sans mt-0.5">
-              Paste any course URL or topic. We slice it with <strong>2 Buffer Days / week</strong> so you never fall behind.
+              Paste any article link, course URL, or upload <strong>.md / .pdf</strong> files for automatic reading breakdown.
             </p>
           </div>
 
@@ -455,26 +569,63 @@ export default function FocusPlanView({
           </div>
         </div>
 
-        {/* Natural Search / URL Slicer Form */}
+        {/* Natural Search, Link Ingestion, and File Upload Form */}
         <form onSubmit={handleGenerate} className="space-y-3">
           <div className="relative">
             <input
               type="text"
               value={goalInput}
               onChange={(e) => setGoalInput(e.target.value)}
-              placeholder="Search topic or paste link (Udemy, Medium, YouTube, Docs, LeetCode)..."
-              className="w-full pl-4 pr-10 py-3.5 sm:py-4 rounded-2xl bg-white shadow-[0_4px_20px_-2px_rgba(15,61,35,0.03),0_1px_3px_0_rgba(0,0,0,0.02)] text-xs sm:text-sm font-medium text-forest-950 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition placeholder:text-slate-300"
+              placeholder="Paste article URL, Udemy link, or topic..."
+              className="w-full pl-4 pr-24 py-3.5 sm:py-4 rounded-2xl bg-white shadow-[0_4px_20px_-2px_rgba(15,61,35,0.03),0_1px_3px_0_rgba(0,0,0,0.02)] text-xs sm:text-sm font-medium text-forest-950 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition placeholder:text-slate-300"
             />
-            {goalInput && (
+
+            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {/* File Upload Button (.md, .pdf, .txt) */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                accept=".md,.txt,.pdf,.markdown"
+                className="hidden"
+              />
               <button
                 type="button"
-                onClick={() => setGoalInput('')}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600 w-5 h-5 flex items-center justify-center rounded-full bg-slate-100"
+                onClick={() => fileInputRef.current?.click()}
+                className="p-1.5 rounded-xl bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-emerald-800 transition text-[11px] flex items-center gap-1 font-medium"
+                title="Upload Markdown or PDF document"
               >
-                ✕
+                <Upload className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Upload</span>
               </button>
-            )}
+
+              {goalInput && (
+                <button
+                  type="button"
+                  onClick={() => setGoalInput('')}
+                  className="text-xs text-slate-400 hover:text-slate-600 w-5 h-5 flex items-center justify-center rounded-full bg-slate-100"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
+
+          {uploadedFileName && (
+            <div className="p-2.5 bg-emerald-50 rounded-xl text-xs font-mono text-emerald-900 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5 text-emerald-700" />
+                <span>Uploaded: {uploadedFileName}</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setUploadedFileName(null)}
+                className="text-emerald-700 underline text-[11px]"
+              >
+                Remove
+              </button>
+            </div>
+          )}
 
           {/* Quick Clickable Suggestions */}
           <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500">
@@ -538,7 +689,7 @@ export default function FocusPlanView({
               className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm active:scale-95 transition duration-100 disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>{isGenerating ? 'Slicing Plan & Buffers...' : 'Slice Plan with Buffers 🛡️'}</span>
+              <span>{isGenerating ? 'Fetching & Slicing Reading...' : 'Fetch & Slice Reading 🛡️'}</span>
             </button>
           </div>
         </form>
@@ -621,7 +772,7 @@ export default function FocusPlanView({
                                   : 'bg-emerald-600 hover:bg-emerald-700 text-white'
                               }`}
                             >
-                              <span>{isSelected ? 'Active' : 'Focus Now'}</span>
+                              <span>{isSelected ? 'Active' : 'Focus & Read'}</span>
                               <ArrowRight className="w-3 h-3" />
                             </button>
                           ) : (

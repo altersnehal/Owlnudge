@@ -1,26 +1,43 @@
-/**
- * Owlnudge AI Engine
- * Dual-adapter architecture:
- * 1. Connects to Local Ollama at http://localhost:11434 with structured JSON output.
- * 2. Automatic zero-fail fallback to a deterministic ADHD heuristic slicer if Ollama is offline.
- */
+import { fetchAndExtractContent } from './contentFetcher';
 
 const OLLAMA_ENDPOINT = 'http://localhost:11434/api/generate';
 
-export async function generateRoadmap({ goalText, targetWeeks = 3, dailyMinutes = 45 }) {
+export async function generateRoadmap({ goalText, targetWeeks = 3, dailyMinutes = 45, fileData = null }) {
+  let extracted = null;
+
+  if (fileData) {
+    extracted = {
+      title: fileData.title,
+      rawText: fileData.content,
+      sections: fileData.sections
+    };
+  } else if (/^(http|https):\/\/[^ "]+$/.test(goalText.trim())) {
+    try {
+      extracted = await fetchAndExtractContent(goalText.trim());
+    } catch (e) {
+      console.warn('URL extraction error, proceeding with heuristic:', e);
+    }
+  }
+
   try {
     // Attempt local Ollama generation first
+    const contentContext = extracted?.rawText ? `Extracted Content:\n${extracted.rawText.slice(0, 1500)}` : '';
     const prompt = `You are Owlnudge, an empathetic ADHD accountability mentor.
-Break down this learning goal or resource URL: "${goalText}" into a realistic, anti-overwhelm ${targetWeeks}-week roadmap.
+Break down this learning goal or resource: "${extracted?.title || goalText}" into a realistic, anti-overwhelm ${targetWeeks}-week roadmap.
+${contentContext}
+
 Requirements:
 1. Max ${targetWeeks} progressive milestones.
-2. Each milestone has 3-4 micro-tasks (single ${dailyMinutes}m execution per task).
-3. Automatically insert 2 buffer days every 7 days (labeled type: 'BUFFER').
-4. Return ONLY valid JSON with this schema:
+2. Each milestone has 3-4 micro-tasks with 2-3 microSteps per task.
+3. Each microStep MUST contain:
+   - "title": short action title
+   - "time": e.g. "45s", "2m", "10m"
+   - "readingMaterial": concise 2-3 paragraph reading passage or mental model so the user can read and learn inside the app.
+4. Automatically insert 2 buffer days every 7 days (type: 'BUFFER').
+5. Return ONLY valid JSON with this schema:
 {
   "title": string,
   "summary": string,
-  "sourceUrl": string,
   "bufferDaysCount": number,
   "milestones": [
     {
@@ -35,7 +52,13 @@ Requirements:
           "durationMinutes": number,
           "type": "TASK" | "BUFFER",
           "intuitionTip": string,
-          "microSteps": [string, string, string]
+          "microSteps": [
+            {
+              "title": string,
+              "time": string,
+              "readingMaterial": string
+            }
+          ]
         }
       ]
     }
@@ -43,7 +66,7 @@ Requirements:
 }`;
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s timeout for fast fallback
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
 
     const res = await fetch(OLLAMA_ENDPOINT, {
       method: 'POST',
@@ -69,19 +92,18 @@ Requirements:
     console.info('Ollama offline or timed out; utilizing Owlnudge deterministic ADHD Heuristic Slicer.');
   }
 
-  // Fallback: Deterministic ADHD Heuristic Slicer
-  return generateHeuristicRoadmap(goalText, targetWeeks, dailyMinutes);
+  // Fallback: Deterministic ADHD Heuristic Slicer with rich reading passages
+  return generateHeuristicRoadmap(goalText, targetWeeks, dailyMinutes, extracted);
 }
 
-function generateHeuristicRoadmap(goalText, targetWeeks, dailyMinutes) {
+function generateHeuristicRoadmap(goalText, targetWeeks, dailyMinutes, extracted) {
   const isUrl = /^(http|https):\/\/[^ "]+$/.test(goalText.trim());
-  const lower = goalText.toLowerCase();
+  const lower = (extracted?.title || goalText).toLowerCase();
 
-  let detectedTitle = goalText;
-  let summary = `Structured ${targetWeeks}-week roadmap with progressive micro-goals and built-in buffer cushions.`;
+  let detectedTitle = extracted?.title || goalText;
+  let summary = `Structured ${targetWeeks}-week roadmap with progressive micro-goals, inline reading passages, and built-in buffer cushions.`;
 
-  // URL & Topic Detection
-  if (isUrl) {
+  if (isUrl && !extracted?.title) {
     if (lower.includes('udemy.com')) {
       const pathPart = goalText.split('/course/')[1]?.split('/')[0]?.replace(/-/g, ' ') || 'Udemy Masterclass';
       detectedTitle = `Udemy: ${pathPart.replace(/\b\w/g, l => l.toUpperCase())}`;
@@ -91,23 +113,91 @@ function generateHeuristicRoadmap(goalText, targetWeeks, dailyMinutes) {
       detectedTitle = `Medium: ${pathPart.replace(/\b\w/g, l => l.toUpperCase())}`;
       summary = `Sliced long-form engineering article into actionable mental models and applied exercises.`;
     } else if (lower.includes('youtube.com') || lower.includes('youtu.be')) {
-      detectedTitle = `YouTube Tutorial Series: Masterclass`;
-      summary = `Converted multi-hour video playlist into single-concept sprints with dedicated rest buffers.`;
-    } else {
-      detectedTitle = `Resource Study Plan: ${new URL(goalText).hostname}`;
-      summary = `Extracted key learning milestones from external resource with built-in buffer protection.`;
+      detectedTitle = `YouTube Tutorial: Masterclass`;
+      summary = `Converted video playlist into single-concept sprints with dedicated rest buffers.`;
     }
   }
 
-  const isCoding = /leetcode|code|programming|algorithm|interview|dp|system|react|python|javascript|rust|backend|frontend/i.test(lower);
-  const isDesign = /design|figma|ui|ux|apple|motion|css|tailwind/i.test(lower);
+  // If user provided custom sections from a file or article:
+  if (extracted?.sections && extracted.sections.length > 0) {
+    const sectionTasks = extracted.sections.map((sec, idx) => ({
+      id: `t_sec_${idx + 1}`,
+      title: sec.title || `Module ${idx + 1}`,
+      durationMinutes: dailyMinutes,
+      type: 'TASK',
+      intuitionTip: `Master the core intuition of ${sec.title}.`,
+      microSteps: [
+        {
+          title: `Scan key concepts in ${sec.title} (30s)`,
+          time: '45s',
+          readingMaterial: sec.content || `Focus on understanding the core premise before applying the concept.`
+        },
+        {
+          title: `Read breakdown & practical application (2m)`,
+          time: '2m',
+          readingMaterial: `**Deep Dive Takeaway:**\n\n${sec.content}\n\n*Reflective Prompt: How does this apply to your current project or challenge?*`
+        },
+        {
+          title: `Summarize 1 takeaway in your own words (5m)`,
+          time: '5m',
+          readingMaterial: `Write down 1 single sentence that explains this concept to a 10-year-old. Once written, you have locked this pattern in memory.`
+        }
+      ]
+    }));
+
+    return {
+      source: 'extracted_content',
+      title: detectedTitle,
+      summary: `Extracted ${extracted.sections.length} core reading modules with auto-injected buffer days.`,
+      bufferDaysCount: targetWeeks * 2,
+      milestones: [
+        {
+          id: 'm1',
+          weekNumber: 1,
+          title: 'Week 1: Core Principles & Foundations',
+          description: 'Absorb foundational frameworks with zero cognitive overload.',
+          tasks: [
+            ...sectionTasks.slice(0, 2),
+            {
+              id: 'b1_1',
+              title: 'Buffer Day 1 (Rest & Guilt-Free Catch-up)',
+              durationMinutes: 0,
+              type: 'BUFFER',
+              intuitionTip: 'Buffers prevent burnout and protect your schedule.',
+              microSteps: []
+            },
+            ...(sectionTasks.slice(2, 3) || [])
+          ]
+        },
+        {
+          id: 'm2',
+          weekNumber: 2,
+          title: 'Week 2: Deep Application & Synthesis',
+          description: 'Hands-on practice and synthesis.',
+          tasks: [
+            ...(sectionTasks.slice(3, 5) || []),
+            {
+              id: 'b2_1',
+              title: 'Buffer Day 2 (Consolidation Day)',
+              durationMinutes: 0,
+              type: 'BUFFER',
+              intuitionTip: 'Neural consolidation happens during rest.',
+              microSteps: []
+            }
+          ]
+        }
+      ]
+    };
+  }
+
+  // Default Coding & Algorithm Archetype
+  const isCoding = /leetcode|code|programming|algorithm|interview|dp|recursion|system|react|python|javascript|rust/i.test(lower);
 
   if (isCoding || lower.includes('dp') || lower.includes('dynamic programming')) {
     return {
       source: 'heuristic',
-      title: detectedTitle.startsWith('http') ? 'Dynamic Programming & System Architecture' : detectedTitle,
-      sourceUrl: isUrl ? goalText : null,
-      summary: summary || "We deconstructed 50+ overwhelming problems into 3 focused micro-archetypes with 2 mandatory buffer cushions per week.",
+      title: detectedTitle.startsWith('http') ? 'Dynamic Programming & Recursion Masterclass' : detectedTitle,
+      summary: "Deconstructed 50+ overwhelming problems into 3 focused micro-archetypes with inline reading lessons and 2 mandatory buffer cushions per week.",
       bufferDaysCount: targetWeeks * 2,
       milestones: [
         {
@@ -123,21 +213,40 @@ function generateHeuristicRoadmap(goalText, targetWeeks, dailyMinutes) {
               type: 'TASK',
               intuitionTip: 'Memoization = Remembering answers so you never repeat work for the same subproblem.',
               microSteps: [
-                'Open problem description and read Example 1 only (30 secs)',
-                'Write down base cases n=1 and n=2 on a napkin (2 mins)',
-                'Write loop recurrence: dp[i] = dp[i-1] + dp[i-2] (10 mins)'
+                {
+                  title: 'Open LeetCode #70 & Read Base Cases (30s)',
+                  time: '45s',
+                  readingMaterial: `### 🧗 Climbing Stairs Intuition\n\nTo reach step \`n\`, you can only come from:\n1. Step \`n - 1\` (by taking a 1-step leap)\n2. Step \`n - 2\` (by taking a 2-step leap)\n\nTherefore, total ways to reach step \`n\` is simply:\n\`ways(n) = ways(n - 1) + ways(n - 2)\`\n\n**Base Cases:**\n- \`ways(1) = 1\` (only 1 step)\n- \`ways(2) = 2\` (1+1 or 2)`
+                },
+                {
+                  title: 'Visual Recurrence & Napkin Drawing (2m)',
+                  time: '2m',
+                  readingMaterial: `### 🌲 The Subproblem Call Tree\n\nNotice that \`ways(4)\` calls \`ways(3)\` and \`ways(2)\`.\n\`ways(3)\` calls \`ways(2)\` and \`ways(1)\`.\n\nWithout memoization, \`ways(2)\` is computed twice!\nWith an array or cache: \`dp[i] = dp[i-1] + dp[i-2]\`, every step is calculated exactly once in **O(n)** time.`
+                },
+                {
+                  title: 'Code the 3-line State Transition (10m)',
+                  time: '10m',
+                  readingMaterial: `### 💻 3-Line Solution Pattern\n\n\`\`\`javascript\nlet prev1 = 1, prev2 = 2;\nfor (let i = 3; i <= n; i++) {\n  let curr = prev1 + prev2;\n  prev1 = prev2;\n  prev2 = curr;\n}\nreturn prev2;\n\`\`\`\nNotice space complexity is reduced to **O(1)**.`
+                }
               ]
             },
             {
               id: 't1_2',
-              title: 'House Robber (Binary Decision Tree: Rob or Skip)',
+              title: 'House Robber (Binary Decision: Rob or Skip)',
               durationMinutes: dailyMinutes,
               type: 'TASK',
-              intuitionTip: 'Every index i has only two choices: Rob current + dp[i-2] OR Skip current + dp[i-1].',
+              intuitionTip: 'Every house has only two choices: Rob current + dp[i-2] OR Skip current + dp[i-1].',
               microSteps: [
-                'Draw a 3-house diagram [2, 7, 9] (1 min)',
-                'Calculate max loot for first 2 houses (2 mins)',
-                'Code the max(prev1, prev2 + val) transition (15 mins)'
+                {
+                  title: 'Read Binary Choice Rules (1m)',
+                  time: '1m',
+                  readingMaterial: `### 🏠 The Robber's Dilemma\n\nAdjacent houses have security alarms. At house \`i\`, you have exactly **two mutually exclusive choices**:\n\n1. **Rob house i:** You gain \`val[i]\`, but you cannot rob house \`i-1\`. Max loot = \`val[i] + maxLoot(i-2)\`.\n2. **Skip house i:** You keep whatever max loot you had from house \`i-1\`. Max loot = \`maxLoot(i-1)\`.\n\nState formula: \`dp[i] = max(dp[i-1], dp[i-2] + val[i])\``
+                },
+                {
+                  title: 'Trace [2, 7, 9, 3, 1] on Paper (2m)',
+                  time: '2m',
+                  readingMaterial: `### ✏️ Step-by-Step Trace\n\n- House 0 (\`$2\`): max = $2\n- House 1 (\`$7\`): max = max(2, 7) = $7\n- House 2 (\`$9\`): max(7, 2 + 9) = $11\n- House 3 (\`$3\`): max(11, 7 + 3) = $11\n- House 4 (\`$1\`): max(11, 11 + 1) = $12\n\nTotal loot: **$12**.`
+                }
               ]
             },
             {
@@ -146,109 +255,37 @@ function generateHeuristicRoadmap(goalText, targetWeeks, dailyMinutes) {
               durationMinutes: 0,
               type: 'BUFFER',
               intuitionTip: 'Buffers are not wasted days; they prevent burnout and keep your timeline safe.',
-              microSteps: [
-                'Hydrate and do a 5-minute stretch',
-                'Zero code required unless you are in flow'
-              ]
-            },
-            {
-              id: 't1_3',
-              title: 'Coin Change (Unbounded Knapsack & Min Combinations)',
-              durationMinutes: dailyMinutes,
-              type: 'TASK',
-              intuitionTip: 'dp[amount] = 1 + min(dp[amount - coin]) for all coin choices.',
-              microSteps: [
-                'Test target 3 with coins [1, 2] on paper (2 mins)',
-                'Initialize array with infinity/amount+1 (2 mins)',
-                'Write nested loop and run tests (15 mins)'
-              ]
-            },
-            {
-              id: 'b1_2',
-              title: 'Buffer Day 2 (Consolidation & Somatic Reset)',
-              durationMinutes: 0,
-              type: 'BUFFER',
-              intuitionTip: 'Rest allows neural consolidation of newly learned patterns.',
-              microSteps: [
-                'Quick 60-second review of your 3 patterns',
-                'Enjoy your guilt-free momentum'
-              ]
+              microSteps: []
             }
           ]
         },
         {
           id: 'm2',
           weekNumber: 2,
-          title: 'Phase 2: 2D Grid DP & Subsequence Matching',
-          description: 'Extend 1D state concepts into row/column matrices.',
+          title: 'Phase 2: 2D Grid DP & Subsequence Transitions',
+          description: 'Transition from 1D states into row/column matrices.',
           tasks: [
             {
               id: 't2_1',
-              title: 'Unique Paths (Grid Coordinate Transitions)',
+              title: 'Unique Paths (2D Grid Intuition)',
               durationMinutes: dailyMinutes,
               type: 'TASK',
               intuitionTip: 'Ways to reach grid[r][c] = ways from top + ways from left.',
               microSteps: [
-                'Draw a 3x3 grid with start at (0,0) and finish at (2,2)',
-                'Fill first row and column with 1s',
-                'Iterate through remaining cells with dp[r][c] = dp[r-1][c] + dp[r][c-1]'
+                {
+                  title: 'Understand Grid Movement Constraints (1m)',
+                  time: '1m',
+                  readingMaterial: `### 🗺️ 2D Grid Coordinate Rules\n\nA robot is located at top-left \`(0,0)\` and wants to reach bottom-right \`(m-1, n-1)\`.\nThe robot can ONLY move **Down** or **Right**.\n\nTherefore, to land on any cell \`(r, c)\`, the robot must come from:\n- Top cell: \`(r - 1, c)\`\n- Left cell: \`(r, c - 1)\`\n\nFormula: \`dp[r][c] = dp[r-1][c] + dp[r][c-1]\``
+                }
               ]
             },
             {
               id: 'b2_1',
-              title: 'Buffer Day 3 (Safety Net Cushion)',
+              title: 'Buffer Day 2 (Consolidation Cushion)',
               durationMinutes: 0,
               type: 'BUFFER',
-              intuitionTip: 'Buffer cushion absorbs life delays without resetting progress.',
-              microSteps: ['Rest or light review']
-            },
-            {
-              id: 't2_2',
-              title: 'Longest Common Subsequence (2D String Alignment)',
-              durationMinutes: dailyMinutes,
-              type: 'TASK',
-              intuitionTip: 'Match characters: 1 + diag. Mismatch: max(top, left).',
-              microSteps: [
-                'Compare string "abcde" and "ace" on grid',
-                'Fill DP matrix row by row',
-                'Traceback solution'
-              ]
-            },
-            {
-              id: 'b2_2',
-              title: 'Buffer Day 4 (Spillover Absorption)',
-              durationMinutes: 0,
-              type: 'BUFFER',
-              intuitionTip: 'No shame, no penalty.',
-              microSteps: ['Recharge dopamine']
-            }
-          ]
-        },
-        {
-          id: 'm3',
-          weekNumber: 3,
-          title: 'Phase 3: Real-World Architecture & Synthesis',
-          description: 'Translate algorithmic intuition into production systems and mock readiness.',
-          tasks: [
-            {
-              id: 't3_1',
-              title: 'Rate Limiter (Token Bucket Algorithm)',
-              durationMinutes: dailyMinutes,
-              type: 'TASK',
-              intuitionTip: 'Token Bucket = Refill at fixed rate, consume per request, reject on empty.',
-              microSteps: [
-                'Diagram client, gateway, and Redis cache',
-                'Define sliding window time key structure',
-                'Write down 429 Too Many Requests response flow'
-              ]
-            },
-            {
-              id: 'b3_1',
-              title: 'Final Buffer Day & Interview Readiness',
-              durationMinutes: 0,
-              type: 'BUFFER',
-              intuitionTip: 'You completed your structured learning arc without burnout!',
-              microSteps: ['Review core cheatsheet', 'Confidence check']
+              intuitionTip: 'Neural consolidation happens during rest.',
+              microSteps: []
             }
           ]
         }
@@ -256,90 +293,36 @@ function generateHeuristicRoadmap(goalText, targetWeeks, dailyMinutes) {
     };
   }
 
-  if (isDesign) {
-    return {
-      source: 'heuristic',
-      title: detectedTitle,
-      sourceUrl: isUrl ? goalText : null,
-      summary: `Design mastery sliced into spatial hierarchy, fluid motion, and accessible tokens with buffer protection.`,
-      bufferDaysCount: targetWeeks * 2,
-      milestones: [
-        {
-          id: 'm1',
-          weekNumber: 1,
-          title: 'Week 1: Spatial Restraint & Typography Hierarchy',
-          description: 'Master Apple-inspired clean whitespace and optical sizing.',
-          tasks: [
-            {
-              id: 't1_1',
-              title: '4pt/8pt Spacing Scale & Layout Framing',
-              durationMinutes: dailyMinutes,
-              type: 'TASK',
-              intuitionTip: 'Whitespace creates focus. Give primary actions breathing room.',
-              microSteps: ['Define 4pt grid tokens', 'Apply 24px padding on hero card', 'Verify mobile readability']
-            },
-            {
-              id: 'b1_1',
-              title: 'Buffer Day 1 (Visual Rest)',
-              durationMinutes: 0,
-              type: 'BUFFER',
-              intuitionTip: 'Rest sparks creative clarity.',
-              microSteps: ['Take a walk outside', 'No screen fatigue']
-            }
-          ]
-        },
-        {
-          id: 'm2',
-          weekNumber: 2,
-          title: 'Week 2: Tactile Micro-Interactions & Physics',
-          description: 'Emil Kowalski inspired responsive motion and haptic-like press states.',
-          tasks: [
-            {
-              id: 't2_1',
-              title: 'Active Scale & Spring Transitions',
-              durationMinutes: dailyMinutes,
-              type: 'TASK',
-              intuitionTip: 'Buttons should compress on press (active:scale-95) with fast 120ms release.',
-              microSteps: ['Add active scale to primary CTAs', 'Test spring easing curve', 'Verify zero layout shift']
-            },
-            {
-              id: 'b2_1',
-              title: 'Buffer Day 2 (Creative Buffer)',
-              durationMinutes: 0,
-              type: 'BUFFER',
-              intuitionTip: 'Buffer cushion absorbs unexpected schedule changes.',
-              microSteps: ['Zero guilt day']
-            }
-          ]
-        }
-      ]
-    };
-  }
-
-  // General Topic / Link Fallback
+  // General Topic Fallback
   return {
     source: 'heuristic',
     title: detectedTitle,
-    sourceUrl: isUrl ? goalText : null,
     summary: summary,
     bufferDaysCount: targetWeeks * 2,
     milestones: [
       {
         id: 'm1',
         weekNumber: 1,
-        title: 'Phase 1: Foundations & Core Setup',
-        description: 'Establish initial baseline with friction-free micro-actions.',
+        title: 'Phase 1: Foundations & Core Concepts',
+        description: 'Absorb the fundamental baseline with micro-reading modules.',
         tasks: [
           {
             id: 't1_1',
-            title: 'Initial Orientation & Core Takeaway',
+            title: 'Foundational Overview & Key Mental Models',
             durationMinutes: dailyMinutes,
             type: 'TASK',
-            intuitionTip: 'Start with the simplest introductory module to clear initial inertia.',
+            intuitionTip: 'Understand the big picture before diving into mechanics.',
             microSteps: [
-              'Open primary resource and scan table of contents (1 min)',
-              'Write down 1 core goal for this week (2 mins)',
-              'Complete first 15-minute introductory segment'
+              {
+                title: 'Scan Core Objectives (45s)',
+                time: '45s',
+                readingMaterial: `### 🎯 Core Focus Objectives\n\n- Identify the 3 most crucial takeaways in ${detectedTitle}.\n- Focus on clarity and practical utility rather than exhaustive theory.\n- Remember: 1 clear mental model beats 10 memorized bullet points.`
+              },
+              {
+                title: 'Deep Concept Reading (2m)',
+                time: '2m',
+                readingMaterial: `### 💡 Primary Framework\n\nBreak the topic into input, process, and output.\nWhen learning complex systems, ask:\n1. What problem was this created to solve?\n2. What are the common pitfalls?\n3. What is the minimal viable example?`
+              }
             ]
           },
           {
@@ -347,56 +330,8 @@ function generateHeuristicRoadmap(goalText, targetWeeks, dailyMinutes) {
             title: 'Buffer Day 1 (Zero-Guilt Rest)',
             durationMinutes: 0,
             type: 'BUFFER',
-            intuitionTip: 'Buffers keep your long-term consistency intact.',
-            microSteps: ['Rest and recharge']
-          },
-          {
-            id: 't1_2',
-            title: 'Key Concepts & Active Recall Notes',
-            durationMinutes: dailyMinutes,
-            type: 'TASK',
-            intuitionTip: 'Summarize 1 takeaway in your own words before closing the session.',
-            microSteps: [
-              'Review chapter / video 2 (15 mins)',
-              'Extract 2 practical insights (5 mins)',
-              'Log 1 micro-win'
-            ]
-          },
-          {
-            id: 'b1_2',
-            title: 'Buffer Day 2 (Life Delay Buffer)',
-            durationMinutes: 0,
-            type: 'BUFFER',
-            intuitionTip: 'Absorbs any busy day automatically.',
-            microSteps: ['Enjoy your evening without guilt']
-          }
-        ]
-      },
-      {
-        id: 'm2',
-        weekNumber: 2,
-        title: 'Phase 2: Deep Practice & Application',
-        description: 'Hands-on synthesis of core principles.',
-        tasks: [
-          {
-            id: 't2_1',
-            title: 'Applied Exercise & Hands-on Build',
-            durationMinutes: dailyMinutes,
-            type: 'TASK',
-            intuitionTip: 'Apply the concept in a mini sandbox project.',
-            microSteps: [
-              'Set up sandbox test environment',
-              'Implement minimal working prototype (20 mins)',
-              'Refactor and review'
-            ]
-          },
-          {
-            id: 'b2_1',
-            title: 'Buffer Day 3 (Consolidation Cushion)',
-            durationMinutes: 0,
-            type: 'BUFFER',
-            intuitionTip: 'Neural pathways consolidate during rest.',
-            microSteps: ['Rest or light review']
+            intuitionTip: 'Rest allows neural consolidation.',
+            microSteps: []
           }
         ]
       }

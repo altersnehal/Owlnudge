@@ -48,10 +48,10 @@ export default function App() {
     }
   }, [roadmap, stats]);
 
-  const handleGenerateRoadmap = async ({ goalText, targetWeeks, dailyMinutes }) => {
+  const handleGenerateRoadmap = async ({ goalText, targetWeeks, dailyMinutes, fileData }) => {
     setIsGenerating(true);
     try {
-      const result = await generateRoadmap({ goalText, targetWeeks, dailyMinutes });
+      const result = await generateRoadmap({ goalText, targetWeeks, dailyMinutes, fileData });
       setRoadmap(result);
       const firstTask = result.milestones?.[0]?.tasks?.find(t => t.type !== 'BUFFER') || result.milestones?.[0]?.tasks?.[0];
       setActiveTask(firstTask);
