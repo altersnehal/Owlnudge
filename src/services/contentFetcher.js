@@ -1,59 +1,110 @@
 /**
  * Owlnudge Content Ingestion & Deep Reader
  * Supports:
- * 1. YouTube Videos & Podcasts (metadata extraction, chapter breakdown, iframe embeds).
+ * 1. YouTube Videos & Podcasts (robust URL parsing, oEmbed metadata, multi-chapter breakdowns, iframe embeds).
  * 2. Web URLs (Medium, Substack, Docs, GitHub, Wikipedia, blogs) via Jina & CORS proxies.
  * 3. Markdown (.md), Plain Text (.txt), and PDF documents.
  */
 
+export function normalizeSourceUrl(source) {
+  let trimmed = source.trim();
+  if (/^(youtube\.com|youtu\.be|www\.youtube\.com|m\.youtube\.com)/i.test(trimmed)) {
+    trimmed = `https://${trimmed}`;
+  } else if (/^(www\.[^ "]+)/i.test(trimmed)) {
+    trimmed = `https://${trimmed}`;
+  }
+  return trimmed;
+}
+
 export function isYouTubeUrl(url) {
-  return /(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|live\/|shorts\/)|youtu\.be\/)/i.test(url.trim());
+  const clean = normalizeSourceUrl(url);
+  return /(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|live\/|shorts\/)|youtu\.be\/)/i.test(clean);
 }
 
 export function extractYouTubeId(url) {
+  const clean = normalizeSourceUrl(url);
   const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|live|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
-  const match = url.match(regExp);
+  const match = clean.match(regExp);
   const videoId = match ? match[1] : null;
 
-  // Extract start timestamp if present (e.g. &t=120s or &t=120 or &start=120)
+  // Extract start timestamp cleanly (handles ?t=120, ?t=120s, ?t=1m30s, &start=120, etc.)
   let startSeconds = 0;
-  const tMatch = url.match(/[?&](?:t|start)=(\d+h)?(\d+m)?(\d+s?)?/i);
+  const tMatch = clean.match(/[?&](?:t|start)=([^&#]+)/i);
   if (tMatch) {
-    let hours = 0, mins = 0, secs = 0;
-    if (tMatch[1]) hours = parseInt(tMatch[1]);
-    if (tMatch[2]) mins = parseInt(tMatch[2]);
-    if (tMatch[3]) secs = parseInt(tMatch[3]);
-    startSeconds = (hours * 3600) + (mins * 60) + secs;
+    const val = tMatch[1];
+    if (/^\d+s?$/i.test(val)) {
+      startSeconds = parseInt(val, 10);
+    } else {
+      let h = 0, m = 0, s = 0;
+      const hMatch = val.match(/(\d+)h/i);
+      const mMatch = val.match(/(\d+)m/i);
+      const sMatch = val.match(/(\d+)s/i);
+      if (hMatch) h = parseInt(hMatch[1], 10);
+      if (mMatch) m = parseInt(mMatch[1], 10);
+      if (sMatch) s = parseInt(sMatch[1], 10);
+      startSeconds = (h * 3600) + (m * 60) + s;
+    }
   }
 
   return { videoId, startSeconds };
 }
 
 export async function fetchYouTubeMetadata(url) {
+  const cleanUrl = normalizeSourceUrl(url);
+  
+  // 1. Try official YouTube oEmbed API
   try {
-    const oembedUrl = `https://noembed.com/embed?url=${encodeURIComponent(url)}`;
-    const res = await fetch(oembedUrl);
+    const ytOembed = `https://www.youtube.com/oembed?url=${encodeURIComponent(cleanUrl)}&format=json`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+    const res = await fetch(ytOembed, { signal: controller.signal });
+    clearTimeout(timeout);
     if (res.ok) {
       const data = await res.json();
-      return {
-        title: data.title || 'YouTube Video Masterclass',
-        author: data.author_name || 'YouTube Creator',
-        thumbnail: data.thumbnail_url || ''
-      };
+      if (data && data.title) {
+        return {
+          title: data.title,
+          author: data.author_name || 'YouTube Creator',
+          thumbnail: data.thumbnail_url || ''
+        };
+      }
     }
   } catch (err) {
-    console.warn('YouTube oEmbed fetch error:', err);
+    // Continue to fallback
   }
+
+  // 2. Try noembed fallback
+  try {
+    const oembedUrl = `https://noembed.com/embed?url=${encodeURIComponent(cleanUrl)}`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+    const res = await fetch(oembedUrl, { signal: controller.signal });
+    clearTimeout(timeout);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.title && !data.error) {
+        return {
+          title: data.title,
+          author: data.author_name || 'YouTube Creator',
+          thumbnail: data.thumbnail_url || ''
+        };
+      }
+    }
+  } catch (err) {
+    // Continue to fallback
+  }
+
+  const { videoId } = extractYouTubeId(cleanUrl);
   return {
-    title: 'YouTube Video Podcast / Lecture',
+    title: videoId ? `YouTube Masterclass (${videoId})` : 'YouTube Video Podcast / Lecture',
     author: 'YouTube',
-    thumbnail: ''
+    thumbnail: videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : ''
   };
 }
 
 export async function fetchAndExtractContent(source) {
-  const trimmed = source.trim();
-  const isUrl = /^(http|https):\/\/[^ "]+$/.test(trimmed);
+  const normalized = normalizeSourceUrl(source);
+  const isUrl = /^(http|https):\/\/[^ "]+$/.test(normalized);
 
   if (!isUrl) {
     return {
@@ -63,27 +114,46 @@ export async function fetchAndExtractContent(source) {
     };
   }
 
-  const url = trimmed;
+  const url = normalized;
 
   // 1. Special Handling for YouTube URLs
   if (isYouTubeUrl(url)) {
     const { videoId, startSeconds } = extractYouTubeId(url);
     const metadata = await fetchYouTubeMetadata(url);
-    const title = metadata.title || 'YouTube Video Lecture';
+    const title = metadata.title || 'YouTube Video Masterclass';
     
-    // Create structured video chapters with embedded players
+    // Create structured video chapters across realistic timestamps with embedded players
+    const baseStart = startSeconds || 0;
     const chapters = [
       {
-        title: `Part 1: Key Premise & Core Thesis (0:00)`,
-        content: `[youtube:${videoId}:${startSeconds || 0}]\n\n### 📺 Video Breakdown - ${title}\n\n**Speaker / Channel:** ${metadata.author}\n\n#### Core Focus for this Segment:\n1. **High-Level Objective**: Watch the introduction to identify the central hypothesis and mental model presented by ${metadata.author}.\n2. **Immediate Mental Anchor**: Note the primary problem the speaker is solving before moving to the technical mechanics.\n3. **Active Reflection**: Stop at key timestamps to synthesize the main arguments rather than passively consuming.`
+        title: `Chapter 1: Foundational Premise & Core Thesis (0:00)`,
+        timestampSec: baseStart,
+        content: `[youtube:${videoId}:${baseStart}]\n\n### 📺 Chapter 1: Big Picture Overview & Central Hypothesis\n\n**Speaker / Channel:** ${metadata.author}\n\n#### Core Focus for this Segment:\n1. **High-Level Objective**: Watch the opening 5 minutes to anchor the speaker's central hypothesis and mental framework.\n2. **Immediate Mental Anchor**: Note the primary problem or bottleneck the speaker is tackling before diving into mechanics.\n3. **Active Reflection**: Stop at key timestamps to synthesize the main arguments rather than passively consuming.`
       },
       {
-        title: `Part 2: Deep Dive & Detailed Mechanics (5:00)`,
-        content: `[youtube:${videoId}:${(startSeconds || 0) + 300}]\n\n### 💡 Key Mechanism Breakdown\n\nIn this middle chapter, the speaker explores the primary evidence, methodology, and practical examples.\n\n#### Critical Takeaways:\n- Identify the 2 biggest constraints or trade-offs mentioned in the video.\n- Notice how real-world friction is addressed by the proposed solution.\n- Test this principle against your own domain or project workflow.`
+        title: `Chapter 2: The Core Mechanism & First Principles (5:00)`,
+        timestampSec: baseStart + 300,
+        content: `[youtube:${videoId}:${baseStart + 300}]\n\n### 💡 Chapter 2: The Core Mechanism Breakdown\n\nIn this segment, the speaker details the fundamental architecture, evidence, and methodology.\n\n#### Critical Analytical Takeaways:\n- **First Principles Bottleneck**: What is the root cause constraint being solved?\n- **Counter-Intuitive Angle**: What common industry or academic assumption does this approach challenge?\n- **Working Memory Anchor**: Summarize the 2 core operational rules introduced here.`
       },
       {
-        title: `Part 3: Practical Action Plan & Takeaways (12:00)`,
-        content: `[youtube:${videoId}:${(startSeconds || 0) + 720}]\n\n### 🛠️ Execution & Synthesis\n\n#### Actionable Summary:\n- Synthesize 1 primary action item you can implement today based on this talk.\n- Bookmark the core mental model in your notes.\n- Once you have absorbed the key takeaways, press **Done & Complete Step** to finish this module!`
+        title: `Chapter 3: Detailed Case Studies & Applied Examples (12:00)`,
+        timestampSec: baseStart + 720,
+        content: `[youtube:${videoId}:${baseStart + 720}]\n\n### 🔍 Chapter 3: Concrete Case Studies & Walkthroughs\n\nWatch how theoretical principles convert into tangible, real-world execution.\n\n#### Key Points to Observe:\n- How does the speaker test hypotheses under real friction?\n- What are the boundary conditions where this method succeeds vs fails?\n- Compare these examples to your current domain or projects.`
+      },
+      {
+        title: `Chapter 4: Trade-Offs, Edge Cases & Common Traps (22:00)`,
+        timestampSec: baseStart + 1320,
+        content: `[youtube:${videoId}:${baseStart + 1320}]\n\n### ⚠️ Chapter 4: Critical Trade-Offs & Edge Cases\n\nEvery powerful paradigm comes with trade-offs. This segment dissects the failure modes.\n\n#### Guardrails:\n- Identify the 2 biggest constraints mentioned by ${metadata.author}.\n- What premature optimizations should you avoid at all costs?\n- How to maintain resilience when unexpected friction occurs.`
+      },
+      {
+        title: `Chapter 5: Actionable Synthesis & Implementation Plan (35:00)`,
+        timestampSec: baseStart + 2100,
+        content: `[youtube:${videoId}:${baseStart + 2100}]\n\n### 🛠️ Chapter 5: Synthesis & Immediate Action Plan\n\n#### Actionable Checklist:\n- Synthesize 1 primary action item you can implement today based on this masterclass.\n- Bookmark the core mental models in your notes.\n- Once you have absorbed the key takeaways, press **Done & Complete Step** to seal this module!`
+      },
+      {
+        title: `Chapter 6: Long-Term Retention & Advanced Nuances (50:00)`,
+        timestampSec: baseStart + 3000,
+        content: `[youtube:${videoId}:${baseStart + 3000}]\n\n### 🧠 Chapter 6: Knowledge Consolidation\n\nFinal review of high-leverage takeaways and overarching insights.\n\n#### Review Strategy:\n- Explain this talk's thesis in 2 sentences without looking at notes.\n- Connect this talk's principles to another mental model you already master.`
       }
     ];
 

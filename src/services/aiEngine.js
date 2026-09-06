@@ -186,7 +186,7 @@ ${contentContext}
 Return ONLY valid JSON matching the Owlnudge roadmap schema.`;
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 5000);
+  const timeoutId = setTimeout(() => controller.abort(), 600);
 
   const res = await fetch(OLLAMA_ENDPOINT, {
     method: 'POST',
@@ -212,9 +212,9 @@ Return ONLY valid JSON matching the Owlnudge roadmap schema.`;
 }
 
 /**
- * Deterministic ADHD Heuristic Slicer with rich multi-paragraph essays and video chapter embeds
+ * Deterministic ADHD Heuristic Slicer with domain-adaptive multi-paragraph essays and video chapter embeds
  */
-function generateHeuristicRoadmap(goalText, targetWeeks, dailyMinutes, extracted) {
+function generateHeuristicRoadmap(goalText, targetWeeks = 3, dailyMinutes = 45, extracted = null) {
   const isUrl = /^(http|https):\/\/[^ "]+$/.test(goalText.trim());
   const lower = (extracted?.title || goalText).toLowerCase();
 
@@ -236,7 +236,7 @@ function generateHeuristicRoadmap(goalText, targetWeeks, dailyMinutes, extracted
     }
   }
 
-  // 1. YouTube Video / Podcast Chapters Pipeline
+  // 1. YouTube Video / Podcast Chapters Pipeline (Evenly distributed across all targetWeeks)
   if (extracted?.isVideo && extracted?.sections?.length > 0) {
     const videoId = extracted.videoId;
     const author = extracted.author || 'Speaker / Creator';
@@ -251,12 +251,12 @@ function generateHeuristicRoadmap(goalText, targetWeeks, dailyMinutes, extracted
         {
           title: `Watch Video Segment & Identify Core Thesis (2m)`,
           time: '2m',
-          readingMaterial: sec.content || `[youtube:${videoId}:0]\n\n### 📺 Chapter Overview - ${sec.title}\n\n**Creator:** ${author}\n\nWatch this chapter to grasp the primary thesis.`
+          readingMaterial: sec.content || `[youtube:${videoId}:${sec.timestampSec || 0}]\n\n### 📺 Chapter Overview - ${sec.title}\n\n**Creator:** ${author}\n\nWatch this chapter to grasp the primary thesis.`
         },
         {
           title: `Mental Model Breakdown & Core Mechanics (2m)`,
           time: '2m',
-          readingMaterial: `### 💡 Deep Dive: Critical Mechanisms\n\nIn this chapter of *${detectedTitle}*, note how the central problem is formulated.\n\n#### Key Analytical Angles:\n1. **First Principles Constraint**: What is the root bottleneck being tackled?\n2. **Counter-Intuitive Insight**: What common assumption does this approach discard?\n3. **Practical Trade-Offs**: Where does this method excel, and where should caution be exercised?\n\n> **⚡ Working Memory Anchor:**\n> Understanding the trade-offs allows you to apply this pattern in novel scenarios without hesitation.`
+          readingMaterial: `### 💡 Deep Dive: Critical Mechanisms\n\nIn this chapter of *${detectedTitle}*, note how the central problem is formulated.\n\n#### Key Analytical Angles:\n1. **First Principles Constraint**: What is the root bottleneck being tackled by ${author}?\n2. **Counter-Intuitive Insight**: What common assumption does this approach discard?\n3. **Practical Trade-Offs**: Where does this method excel, and where should caution be exercised?\n\n> **⚡ Working Memory Anchor:**\n> Understanding the trade-offs allows you to apply this pattern in novel scenarios without hesitation.`
         },
         {
           title: `Actionable Synthesis & Implementation (5m)`,
@@ -266,49 +266,13 @@ function generateHeuristicRoadmap(goalText, targetWeeks, dailyMinutes, extracted
       ]
     }));
 
-    return {
-      source: 'youtube_chapters',
-      title: detectedTitle,
-      summary: `Deconstructed ${extracted.sections.length} video chapters from ${author} with embedded players and rest buffers.`,
-      bufferDaysCount: targetWeeks * 2,
-      milestones: [
-        {
-          id: 'm1',
-          weekNumber: 1,
-          title: 'Week 1: Core Thesis & Foundational Chapters',
-          description: 'Absorb the primary concepts with video-guided micro-sprints.',
-          tasks: [
-            ...videoTasks.slice(0, 2),
-            {
-              id: 'b1_1',
-              title: 'Buffer Day 1 (Rest & Guilt-Free Catch-up)',
-              durationMinutes: 0,
-              type: 'BUFFER',
-              intuitionTip: 'Buffers prevent burnout and protect your schedule.',
-              microSteps: []
-            },
-            ...(videoTasks.slice(2, 3) || [])
-          ]
-        },
-        {
-          id: 'm2',
-          weekNumber: 2,
-          title: 'Week 2: Advanced Mechanics & Synthesis',
-          description: 'Hands-on synthesis and practical application.',
-          tasks: [
-            ...(videoTasks.slice(3, 5) || []),
-            {
-              id: 'b2_1',
-              title: 'Buffer Day 2 (Consolidation Day)',
-              durationMinutes: 0,
-              type: 'BUFFER',
-              intuitionTip: 'Neural consolidation happens during rest.',
-              microSteps: []
-            }
-          ]
-        }
-      ]
-    };
+    return partitionTasksIntoMilestones({
+      allTasks: videoTasks,
+      targetWeeks: targetWeeks,
+      overallTitle: detectedTitle,
+      summary: `Deconstructed video masterclass by ${author} into ${targetWeeks} progressive weekly modules with embedded players and rest buffers.`,
+      source: 'youtube_chapters'
+    });
   }
 
   // 2. Custom Uploaded Document / Extracted Web Article
@@ -338,255 +302,463 @@ function generateHeuristicRoadmap(goalText, targetWeeks, dailyMinutes, extracted
       ]
     }));
 
-    return {
-      source: 'extracted_content',
-      title: detectedTitle,
-      summary: `Extracted ${extracted.sections.length} core reading modules with auto-injected buffer days.`,
-      bufferDaysCount: targetWeeks * 2,
-      milestones: [
+    return partitionTasksIntoMilestones({
+      allTasks: sectionTasks,
+      targetWeeks: targetWeeks,
+      overallTitle: detectedTitle,
+      summary: `Extracted ${extracted.sections.length} core reading modules across ${targetWeeks} weeks with auto-injected buffer days.`,
+      source: 'extracted_content'
+    });
+  }
+
+  // 3. Domain-Adaptive Knowledge Synthesis for Any Topic
+  return generateDomainAdaptiveRoadmap(detectedTitle, targetWeeks, dailyMinutes);
+}
+
+/**
+ * Distributes an arbitrary list of tasks across N weeks with 2 buffer cushions per week
+ */
+function partitionTasksIntoMilestones({ allTasks, targetWeeks, overallTitle, summary, source = 'heuristic' }) {
+  const milestones = [];
+  const totalTasks = allTasks.length;
+  const tasksPerWeek = Math.max(1, Math.ceil(totalTasks / targetWeeks));
+
+  for (let w = 1; w <= targetWeeks; w++) {
+    const startIndex = (w - 1) * tasksPerWeek;
+    let weekTasks = allTasks.slice(startIndex, startIndex + tasksPerWeek);
+
+    // If we ran out of tasks for later weeks, synthesize progressive mastery tasks
+    if (weekTasks.length === 0) {
+      weekTasks = [
         {
-          id: 'm1',
-          weekNumber: 1,
-          title: 'Week 1: Core Principles & Foundations',
-          description: 'Absorb foundational frameworks with zero cognitive overload.',
-          tasks: [
-            ...sectionTasks.slice(0, 2),
+          id: `t_w${w}_1`,
+          title: `Week ${w} Applied Deep Dive: Advanced Synthesis`,
+          durationMinutes: 45,
+          type: 'TASK',
+          intuitionTip: `Consolidate past learnings through rigorous end-to-end testing.`,
+          microSteps: [
             {
-              id: 'b1_1',
-              title: 'Buffer Day 1 (Rest & Guilt-Free Catch-up)',
-              durationMinutes: 0,
-              type: 'BUFFER',
-              intuitionTip: 'Buffers prevent burnout and protect your schedule.',
-              microSteps: []
+              title: `Review Core Architecture (1m)`,
+              time: '1m',
+              readingMaterial: `### 🔍 Week ${w} Synthesis Sprint\n\nReview the core mental models established in earlier weeks and test them against high-friction edge cases.`
             },
-            ...(sectionTasks.slice(2, 3) || [])
-          ]
-        },
-        {
-          id: 'm2',
-          weekNumber: 2,
-          title: 'Week 2: Deep Application & Synthesis',
-          description: 'Hands-on practice and synthesis.',
-          tasks: [
-            ...(sectionTasks.slice(3, 5) || []),
             {
-              id: 'b2_1',
-              title: 'Buffer Day 2 (Consolidation Day)',
-              durationMinutes: 0,
-              type: 'BUFFER',
-              intuitionTip: 'Neural consolidation happens during rest.',
-              microSteps: []
+              title: `Hands-on Capstone Execution (10m)`,
+              time: '10m',
+              readingMaterial: `### 🛠️ Execution Project\n\nBuild or write a complete standalone solution applying everything learned so far.`
             }
           ]
         }
-      ]
-    };
+      ];
+    }
+
+    const phaseTitle = w === 1 
+      ? `Phase 1: Foundations & Core Paradigm` 
+      : w === 2 
+        ? `Phase 2: Deep Mechanics & Architecture` 
+        : w === 3 
+          ? `Phase 3: Applied Patterns, Edge Cases & Synthesis` 
+          : `Phase ${w}: Advanced Mastery & Capstone Implementation`;
+
+    // Interleave 2 buffer days
+    const milestoneTasks = [];
+    if (weekTasks.length >= 2) {
+      milestoneTasks.push(weekTasks[0]);
+      milestoneTasks.push({
+        id: `b${w}_1`,
+        title: `Buffer Day 1 (Mid-Week Guilt-Free Rest)`,
+        durationMinutes: 0,
+        type: 'BUFFER',
+        intuitionTip: 'Mid-week buffers absorb unexpected life friction and prevent burnout.',
+        microSteps: []
+      });
+      milestoneTasks.push(...weekTasks.slice(1));
+      milestoneTasks.push({
+        id: `b${w}_2`,
+        title: `Buffer Day 2 (Consolidation & Catch-up)`,
+        durationMinutes: 0,
+        type: 'BUFFER',
+        intuitionTip: 'Neural consolidation happens during rest periods.',
+        microSteps: []
+      });
+    } else {
+      milestoneTasks.push(...weekTasks);
+      milestoneTasks.push({
+        id: `b${w}_1`,
+        title: `Buffer Day 1 (Rest & Recovery)`,
+        durationMinutes: 0,
+        type: 'BUFFER',
+        intuitionTip: 'Protects your streak and resets working memory.',
+        microSteps: []
+      });
+      milestoneTasks.push({
+        id: `b${w}_2`,
+        title: `Buffer Day 2 (Catch-up Cushion)`,
+        durationMinutes: 0,
+        type: 'BUFFER',
+        intuitionTip: 'Never fall behind schedule with built-in buffer cushions.',
+        microSteps: []
+      });
+    }
+
+    milestones.push({
+      id: `m${w}`,
+      weekNumber: w,
+      title: phaseTitle,
+      description: `Week ${w} progressive micro-goals with 2 dedicated buffer cushions.`,
+      tasks: milestoneTasks
+    });
   }
 
-  // 3. Coding & Algorithm Masterclass Archetype
-  const isCoding = /leetcode|code|programming|algorithm|interview|dp|recursion|system|react|python|javascript|rust|backend|frontend/i.test(lower);
-
-  if (isCoding || lower.includes('dp') || lower.includes('dynamic programming')) {
-    return {
-      source: 'heuristic',
-      title: detectedTitle.startsWith('http') ? 'Dynamic Programming & Recursion Masterclass' : detectedTitle,
-      summary: "Deconstructed 50+ overwhelming problems into 3 focused micro-archetypes with inline reading lessons and 2 mandatory buffer cushions per week.",
-      bufferDaysCount: targetWeeks * 2,
-      milestones: [
-        {
-          id: 'm1',
-          weekNumber: 1,
-          title: 'Phase 1: 1D Recursion & Memoization Patterns',
-          description: 'Master the core state transition formula with single-decision problems.',
-          tasks: [
-            {
-              id: 't1_1',
-              title: 'Climbing Stairs (Visualizing Base Cases)',
-              durationMinutes: dailyMinutes,
-              type: 'TASK',
-              intuitionTip: 'Memoization = Remembering answers so you never repeat work for the same subproblem.',
-              microSteps: [
-                {
-                  title: 'Open LeetCode #70 & Read Base Cases (30s)',
-                  time: '45s',
-                  readingMaterial: `### 🧗 Climbing Stairs Intuition\n\nTo reach step \`n\`, you can only come from:\n1. Step \`n - 1\` (by taking a 1-step leap)\n2. Step \`n - 2\` (by taking a 2-step leap)\n\nTherefore, total ways to reach step \`n\` is simply:\n\`ways(n) = ways(n - 1) + ways(n - 2)\`\n\n**Base Cases:**\n- \`ways(1) = 1\` (only 1 step)\n- \`ways(2) = 2\` (1+1 or 2)`
-                },
-                {
-                  title: 'Visual Recurrence & Napkin Drawing (2m)',
-                  time: '2m',
-                  readingMaterial: `### 🌲 The Subproblem Call Tree\n\nNotice that \`ways(4)\` calls \`ways(3)\` and \`ways(2)\`.\n\`ways(3)\` calls \`ways(2)\` and \`ways(1)\`.\n\nWithout memoization, \`ways(2)\` is computed twice!\nWith an array or cache: \`dp[i] = dp[i-1] + dp[i-2]\`, every step is calculated exactly once in **O(n)** time.`
-                },
-                {
-                  title: 'Code the 3-line State Transition (10m)',
-                  time: '10m',
-                  readingMaterial: `### 💻 3-Line Solution Pattern\n\n\`\`\`javascript\nlet prev1 = 1, prev2 = 2;\nfor (let i = 3; i <= n; i++) {\n  let curr = prev1 + prev2;\n  prev1 = prev2;\n  prev2 = curr;\n}\nreturn prev2;\n\`\`\`\nNotice space complexity is reduced to **O(1)**.`
-                }
-              ]
-            },
-            {
-              id: 't1_2',
-              title: 'House Robber (Binary Decision: Rob or Skip)',
-              durationMinutes: dailyMinutes,
-              type: 'TASK',
-              intuitionTip: 'Every house has only two choices: Rob current + dp[i-2] OR Skip current + dp[i-1].',
-              microSteps: [
-                {
-                  title: 'Read Binary Choice Rules (1m)',
-                  time: '1m',
-                  readingMaterial: `### 🏠 The Robber's Dilemma\n\nAdjacent houses have security alarms. At house \`i\`, you have exactly **two mutually exclusive choices**:\n\n1. **Rob house i:** You gain \`val[i]\`, but you cannot rob house \`i-1\`. Max loot = \`val[i] + maxLoot(i-2)\`.\n2. **Skip house i:** You keep whatever max loot you had from house \`i-1\`. Max loot = \`maxLoot(i-1)\`.\n\nState formula: \`dp[i] = max(dp[i-1], dp[i-2] + val[i])\``
-                },
-                {
-                  title: 'Trace [2, 7, 9, 3, 1] on Paper (2m)',
-                  time: '2m',
-                  readingMaterial: `### ✏️ Step-by-Step Trace\n\n- House 0 (\`$2\`): max = $2\n- House 1 (\`$7\`): max = max(2, 7) = $7\n- House 2 (\`$9\`): max(7, 2 + 9) = $11\n- House 3 (\`$3\`): max(11, 7 + 3) = $11\n- House 4 (\`$1\`): max(11, 11 + 1) = $12\n\nTotal loot: **$12**.`
-                }
-              ]
-            },
-            {
-              id: 'b1_1',
-              title: 'Buffer Day 1 (Rest & Guilt-Free Catch-up)',
-              durationMinutes: 0,
-              type: 'BUFFER',
-              intuitionTip: 'Buffers are not wasted days; they prevent burnout and keep your timeline safe.',
-              microSteps: []
-            }
-          ]
-        },
-        {
-          id: 'm2',
-          weekNumber: 2,
-          title: 'Phase 2: 2D Grid DP & Subsequence Transitions',
-          description: 'Transition from 1D states into row/column matrices.',
-          tasks: [
-            {
-              id: 't2_1',
-              title: 'Unique Paths (2D Grid Intuition)',
-              durationMinutes: dailyMinutes,
-              type: 'TASK',
-              intuitionTip: 'Ways to reach grid[r][c] = ways from top + ways from left.',
-              microSteps: [
-                {
-                  title: 'Understand Grid Movement Constraints (1m)',
-                  time: '1m',
-                  readingMaterial: `### 🗺️ 2D Grid Coordinate Rules\n\nA robot is located at top-left \`(0,0)\` and wants to reach bottom-right \`(m-1, n-1)\`.\nThe robot can ONLY move **Down** or **Right**.\n\nTherefore, to land on any cell \`(r, c)\`, the robot must come from:\n- Top cell: \`(r - 1, c)\`\n- Left cell: \`(r, c - 1)\`\n\nFormula: \`dp[r][c] = dp[r-1][c] + dp[r][c-1]\``
-                }
-              ]
-            },
-            {
-              id: 'b2_1',
-              title: 'Buffer Day 2 (Consolidation Cushion)',
-              durationMinutes: 0,
-              type: 'BUFFER',
-              intuitionTip: 'Neural consolidation happens during rest.',
-              microSteps: []
-            }
-          ]
-        }
-      ]
-    };
-  }
-
-  // 4. General Open-Ended Topic Essay & Masterclass Archetype
   return {
-    source: 'heuristic',
-    title: detectedTitle,
-    summary: summary,
+    source: source,
+    title: overallTitle,
+    summary: summary || `Structured ${targetWeeks}-week roadmap with progressive micro-goals, comprehensive reading passages, and built-in buffer cushions.`,
     bufferDaysCount: targetWeeks * 2,
-    milestones: [
-      {
-        id: 'm1',
-        weekNumber: 1,
-        title: 'Phase 1: Foundations & Mental Models',
-        description: 'Absorb the fundamental baseline with micro-reading modules.',
-        tasks: [
+    milestones: milestones
+  };
+}
+
+/**
+ * Intelligent domain knowledge generator tailored to any input topic
+ */
+function generateDomainAdaptiveRoadmap(topicTitle, targetWeeks, dailyMinutes) {
+  const cleanTitle = topicTitle.trim().replace(/\b\w/g, l => l.toUpperCase());
+  const lower = topicTitle.toLowerCase();
+
+  // 1. Detect Domain
+  let domain = 'GENERAL';
+  if (/dp|recursion|algorithm|leetcode|trees|graphs|binary search|sorting|data structure/i.test(lower)) {
+    domain = 'ALGORITHMS';
+  } else if (/distributed|system design|microservices|kafka|kubernetes|docker|redis|sharding|caching|load balancer|scalability|sql|database/i.test(lower)) {
+    domain = 'SYSTEM_DESIGN';
+  } else if (/ai|machine learning|deep learning|neural|llm|gpt|transformer|bert|pytorch|tensorflow|nlp|vision|backpropagation/i.test(lower)) {
+    domain = 'AI_ML';
+  } else if (/react|next\.js|frontend|vue|javascript|typescript|css|tailwind|web dev|html|angular|ui|ux/i.test(lower)) {
+    domain = 'FRONTEND';
+  } else if (/adhd|focus|dopamine|neuroscience|habit|procrastination|burnout|psychology|executive function|flow/i.test(lower)) {
+    domain = 'PSYCH_ADHD';
+  } else if (/stoic|stoicism|marcus aurelius|seneca|epictetus|philosophy|ethics|logic|mental model/i.test(lower)) {
+    domain = 'PHILOSOPHY';
+  } else if (/startup|saas|business|economics|finance|investing|marketing|growth|accounting|dcf/i.test(lower)) {
+    domain = 'BUSINESS';
+  } else if (/quantum|physics|biology|chemistry|science|evolution|astronomy|thermodynamics/i.test(lower)) {
+    domain = 'SCIENCE';
+  }
+
+  // Generate domain-tailored tasks across all weeks
+  const allTasks = [];
+
+  for (let w = 1; w <= targetWeeks; w++) {
+    if (domain === 'ALGORITHMS') {
+      if (w === 1) {
+        allTasks.push(
           {
-            id: 't1_1',
-            title: `Foundational Overview: ${detectedTitle}`,
+            id: `t_algo_${w}_1`,
+            title: `1D Recursion & Memoization Patterns`,
             durationMinutes: dailyMinutes,
             type: 'TASK',
-            intuitionTip: 'Understand the big picture before diving into mechanics.',
+            intuitionTip: 'Memoization = Caching state answers so you never repeat work for the same subproblem.',
             microSteps: [
               {
-                title: 'Scan Core Objectives & Thesis (45s)',
+                title: 'Deconstruct Recursive State Tree (45s)',
                 time: '45s',
-                readingMaterial: `### 🎯 Core Focus Objectives - ${detectedTitle}
-
-The primary goal of this phase is establishing a rock-solid mental framework without getting trapped in cognitive overload or premature rabbit holes.
-
-#### Key Principles:
-1. **The 80/20 Foundation**: 80% of real-world outcomes in this subject stem from mastering 3 core primitives. Our focus is zeroing in on those foundational primitives before touching secondary edge cases.
-2. **First-Principles Thinking**: Rather than memorizing rules or steps by rote, understand the root problem that forced the creation of this paradigm. When you understand *why* a constraint exists, the solution becomes self-evident.
-3. **Working Memory Conservation**: Neurodivergent learners excel when concepts are chunked into self-contained units. Read this overview once to form an overarching mental map, then move directly to step 2.`
+                readingMaterial: `### 🌲 The Recursive Call Tree Intuition\n\nWhen solving recursive problems in **${cleanTitle}**, every node in your call tree represents a state.\n\nWithout caching, identical states are re-evaluated exponentially (**O(2ⁿ)**).\nBy indexing state variables in a memoization array or hash table, time complexity collapses to linear (**O(n)**).\n\n\`\`\`javascript\nconst memo = new Map();\nfunction solve(n) {\n  if (n <= 1) return n;\n  if (memo.has(n)) return memo.get(n);\n  const res = solve(n - 1) + solve(n - 2);\n  memo.set(n, res);\n  return res;\n}\n\`\`\``
               },
               {
-                title: 'Deep Concept Reading: The Execution Architecture (2m)',
+                title: 'State Transition Formula Derivation (2m)',
                 time: '2m',
-                readingMaterial: `### 💡 Primary Architecture & Framework
-
-To master **${detectedTitle}**, break the entire domain into three continuous operational layers:
-
-#### 1. Input & Initiation Layer
-Every effective system starts with unambiguous inputs. In this domain, failure to define boundary conditions early leads to cognitive friction and analysis paralysis. Always ask: *"What are the non-negotiable inputs required to trigger execution?"*
-
-#### 2. Processing & State Transition
-At its core, this concept transforms raw inputs into structured outcomes through a series of deterministic state changes. When dissecting any complex problem:
-- Isolate the individual transformations one step at a time.
-- Verify each intermediate state independently before coupling them together.
-- Keep state mutations localized and predictable.
-
-#### 3. Output Validation & Feedback Loops
-Without an immediate feedback loop, learning decay occurs within hours. Build a micro-verification checkpoint after each concept to prove that your mental model matches reality.
-
-> **💡 Mental Model Takeaway:**
-> A simple model that you can execute under stress is 10x more valuable than a complex model you abandon.`
+                readingMaterial: `### 💡 Deriving the Recurrence Relation\n\nTo find the state transition:\n1. **Identify Choices**: At step \`i\`, what decisions are available?\n2. **Express State in Terms of Subproblems**: \`dp[i] = optimal(dp[i-1] + cost, dp[i-2] + cost)\`\n3. **Isolate Base Cases**: What are the smallest non-divisible inputs (\`i = 0, i = 1\`)?`
               },
               {
-                title: 'Practical Synthesis & Reflection Prompt (5m)',
+                title: 'Space Optimization to O(1) (5m)',
                 time: '5m',
-                readingMaterial: `### 🛠️ Synthesis & Real-World Application
-
-Now that the core principles and architecture are clear, let's cement the knowledge into long-term memory.
-
-#### Reflection Checklist:
-- Can you explain the core mechanism in 2 sentences to someone outside the field?
-- Where is the single biggest point of friction when applying this concept, and how does the framework bypass it?
-- What is one tangible project or problem you can test this on today?
-
-Once you have read and internalized these three pillars, hit **Done & Complete Step** to seal the loop!`
+                readingMaterial: `### 🚀 Memory Optimization\n\nIf \`dp[i]\` only depends on \`dp[i-1]\` and \`dp[i-2]\`, eliminate the entire array!\nMaintain only 2 variables (\`prev1\`, \`prev2\`) to achieve **O(1) auxiliary space**.`
               }
             ]
           },
           {
-            id: 'b1_1',
-            title: 'Buffer Day 1 (Zero-Guilt Rest)',
-            durationMinutes: 0,
-            type: 'BUFFER',
-            intuitionTip: 'Rest allows neural consolidation and resets cognitive bandwidth.',
-            microSteps: []
-          },
-          {
-            id: 't1_2',
-            title: 'Core Mechanics & Applied Patterns',
+            id: `t_algo_${w}_2`,
+            title: `Binary Choice State Transitions (Include vs Exclude)`,
             durationMinutes: dailyMinutes,
             type: 'TASK',
-            intuitionTip: 'Turn abstract understanding into muscle memory through concrete practice.',
+            intuitionTip: 'Every element has only two options: Take it and mutate budget, or Skip it.',
             microSteps: [
               {
-                title: 'Analyze Applied Patterns (1m)',
+                title: 'Understand the Binary Decision Model (1m)',
                 time: '1m',
-                readingMaterial: `### 🔍 Applied Implementation Patterns
-
-Moving from theory to execution requires recognizing common recurring patterns in the wild.
-
-- **Pattern A (Linear Flow)**: Best suited for predictable, sequential workloads where each step directly depends on the preceding output.
-- **Pattern B (Hierarchical Branching)**: Used when decisions must be evaluated across multiple conditions before converging back to a unified output.
-
-Notice how both patterns follow the same fundamental architecture you learned in Module 1.`
+                readingMaterial: `### 🎒 The 0/1 Choice Paradigm\n\nFor any item \`i\` with weight \`w\` and value \`v\`:\n- **Option A (Skip)**: Value = \`dp[i-1][capacity]\`\n- **Option B (Take)**: Value = \`v + dp[i-1][capacity - w]\`\n\nState formula: \`dp[i][c] = Math.max(skip, take)\``
               }
             ]
           }
-        ]
+        );
+      } else if (w === 2) {
+        allTasks.push(
+          {
+            id: `t_algo_${w}_1`,
+            title: `2D Grid Transitions & Matrix Traversal`,
+            durationMinutes: dailyMinutes,
+            type: 'TASK',
+            intuitionTip: 'Ways to reach grid[r][c] = ways from Top + ways from Left.',
+            microSteps: [
+              {
+                title: 'Grid Coordinate Constraints (1m)',
+                time: '1m',
+                readingMaterial: `### 🗺️ 2D Matrix DP Rules\n\nA robot at \`(0,0)\` moving only Down or Right to \`(m-1, n-1)\`:\n\`dp[r][c] = dp[r-1][c] + dp[r][c-1]\`\n\nBoundary rows (\`r=0\` or \`c=0\`) have exactly 1 way to be reached.`
+              }
+            ]
+          },
+          {
+            id: `t_algo_${w}_2`,
+            title: `Subsequence Alignment & Longest Common Patterns`,
+            durationMinutes: dailyMinutes,
+            type: 'TASK',
+            intuitionTip: 'If characters match, advance both pointers: 1 + dp[i-1][j-1].',
+            microSteps: [
+              {
+                title: '2-Pointer String State Matrix (2m)',
+                time: '2m',
+                readingMaterial: `### 🔤 String Alignment Recurrence\n\nComparing String A (\`i\`) and String B (\`j\`):\n- If \`A[i] === B[j]\`: \`dp[i][j] = 1 + dp[i-1][j-1]\`\n- If \`A[i] !== B[j]\`: \`dp[i][j] = Math.max(dp[i-1][j], dp[i][j-1])\``
+              }
+            ]
+          }
+        );
+      } else {
+        allTasks.push(
+          {
+            id: `t_algo_${w}_1`,
+            title: `Intervals, Knapsack & Tree State DP`,
+            durationMinutes: dailyMinutes,
+            type: 'TASK',
+            intuitionTip: 'Divide subproblems by sub-intervals [i...k] and [k+1...j].',
+            microSteps: [
+              {
+                title: 'Interval Partitioning Mechanics (2m)',
+                time: '2m',
+                readingMaterial: `### ✂️ Interval DP Framework\n\nIterate over interval length \`len\` from 2 to \`n\`.\nTry all split points \`k\` between \`i\` and \`j\` to minimize total partition cost.`
+              }
+            ]
+          }
+        );
       }
-    ]
-  };
+    } else if (domain === 'SYSTEM_DESIGN') {
+      if (w === 1) {
+        allTasks.push(
+          {
+            id: `t_sys_${w}_1`,
+            title: `Core Architectural Primitives: Caching & Load Balancing`,
+            durationMinutes: dailyMinutes,
+            type: 'TASK',
+            intuitionTip: 'Push data closer to the user; eliminate single points of failure with health-checked round-robin.',
+            microSteps: [
+              {
+                title: 'Deconstruct Latency Numbers Every Engineer Must Know (45s)',
+                time: '45s',
+                readingMaterial: `### ⏱️ Latency Hierarchy in ${cleanTitle}\n\n- **L1 CPU Cache**: ~1 ns\n- **RAM Access**: ~100 ns\n- **SSD NVMe Read**: ~10,000 ns (10 µs)\n- **Redis In-Memory Read**: ~0.5 ms\n- **Postgres Disk Read**: ~10 ms\n- **Cross-Datacenter Round Trip**: ~150 ms\n\n> **💡 Core Rule:**\n> A cache hit avoids a 10,000x latency penalty. Design your caching layer (Cache-Aside vs Write-Through) around read-to-write ratios.`
+              },
+              {
+                title: 'Load Balancing Algorithms & Session Affinity (2m)',
+                time: '2m',
+                readingMaterial: `### ⚖️ Load Balancing Layer\n\nDistribute inbound HTTP/gRPC traffic across stateless app instances using:\n1. **Least Connections**: Best for long-lived WebSocket connections.\n2. **Consistent Hashing**: Minimizes key remapping when nodes scale up or down.\n3. **Round Robin with Health Checks**: Simple and effective for uniform stateless requests.`
+              }
+            ]
+          },
+          {
+            id: `t_sys_${w}_2`,
+            title: `Data Partitioning, Sharding & CAP Theorem`,
+            durationMinutes: dailyMinutes,
+            type: 'TASK',
+            intuitionTip: 'You cannot beat network latency; choose between strict consistency (CP) or high availability (AP).',
+            microSteps: [
+              {
+                title: 'The Realities of CAP & PACELC (2m)',
+                time: '2m',
+                readingMaterial: `### 🌐 Partition Tolerance is Non-Negotiable\n\nNetworks will drop packets. When a partition occurs (P), you must choose:\n- **Consistency (CP)**: Reject writes until all nodes agree (financial ledgers).\n- **Availability (AP)**: Accept writes immediately and resolve conflicts later (social feeds).\n\nPACELC adds: If there is no partition (E), choose between **Latency (L)** and **Consistency (C)**.`
+              }
+            ]
+          }
+        );
+      } else {
+        allTasks.push(
+          {
+            id: `t_sys_${w}_1`,
+            title: `Asynchronous Event Streaming & Distributed Transactions`,
+            durationMinutes: dailyMinutes,
+            type: 'TASK',
+            intuitionTip: 'Decouple producers and consumers with log-based streaming; use Saga patterns instead of 2PC.',
+            microSteps: [
+              {
+                title: 'Kafka Log Partitioning & Consumer Groups (2m)',
+                time: '2m',
+                readingMaterial: `### 📨 Event-Driven Architecture\n\nInstead of direct synchronous HTTP calls between microservices, publish immutable events to partitioned logs.\n\n- Consumer groups scale independently.\n- Failed events route to Dead Letter Queues (DLQ) without crashing the pipeline.`
+              }
+            ]
+          }
+        );
+      }
+    } else if (domain === 'AI_ML') {
+      if (w === 1) {
+        allTasks.push(
+          {
+            id: `t_ai_${w}_1`,
+            title: `Foundations: Loss Landscapes, Gradient Descent & Backpropagation`,
+            durationMinutes: dailyMinutes,
+            type: 'TASK',
+            intuitionTip: 'Neural networks are universal function approximators guided by the chain rule.',
+            microSteps: [
+              {
+                title: 'The Core Optimization Intuition (45s)',
+                time: '45s',
+                readingMaterial: `### 📉 Gradient Descent in ${cleanTitle}\n\nEvery parameter \`W\` is adjusted in the opposite direction of the loss gradient:\n\`W_{t+1} = W_t - \\eta \\cdot \\nabla L(W_t)\`\n\n#### Key Mechanics:\n1. **Forward Pass**: Compute activations layer by layer.\n2. **Loss Calculation**: Measure divergence between prediction and ground truth.\n3. **Backward Pass (Chain Rule)**: Propagate gradients backward to update weights.`
+              },
+              {
+                title: 'Activation Functions & Vanishing Gradients (2m)',
+                time: '2m',
+                readingMaterial: `### ⚡ Non-Linearity & ReLU\n\nWithout non-linear activations (ReLU, GELU, Swish), stacking 100 linear layers is mathematically identical to a single linear layer.\n\nGELU and Leaky ReLU prevent the 'dying neuron' problem by maintaining gradient flow.`
+              }
+            ]
+          },
+          {
+            id: `t_ai_${w}_2`,
+            title: `Self-Attention Mechanics & The Transformer Architecture`,
+            durationMinutes: dailyMinutes,
+            type: 'TASK',
+            intuitionTip: 'Query meets Key to compute Attention Weights, scaling Value embeddings dynamically.',
+            microSteps: [
+              {
+                title: 'Scaled Dot-Product Attention Formula (2m)',
+                time: '2m',
+                readingMaterial: `### 🧠 Attention Is All You Need\n\n\`Attention(Q, K, V) = softmax(Q Kᵀ / √d_k) V\`\n\n1. **Query (Q)**: What this token is looking for.\n2. **Key (K)**: What this token represents.\n3. **Value (V)**: The actual semantic payload.\n\nDividing by \`√d_k\` prevents the softmax function from pushing into regions with vanishingly small gradients.`
+              }
+            ]
+          }
+        );
+      } else {
+        allTasks.push(
+          {
+            id: `t_ai_${w}_1`,
+            title: `LLM Alignment, KV Caching & Inference Optimization`,
+            durationMinutes: dailyMinutes,
+            type: 'TASK',
+            intuitionTip: 'KV cache avoids recomputing attention for previous tokens in autoregressive generation.',
+            microSteps: [
+              {
+                title: 'KV Cache & Quantization (2m)',
+                time: '2m',
+                readingMaterial: `### 🚀 High-Throughput Inference\n\nIn autoregressive token generation, storing Key and Value matrices in memory (KV Cache) reduces inference from **O(N²)** to **O(N)** compute.\n\nApplying 4-bit/8-bit quantization (AWQ, GPTQ) reduces memory bandwidth bottlenecks without significant accuracy loss.`
+              }
+            ]
+          }
+        );
+      }
+    } else if (domain === 'PSYCH_ADHD') {
+      allTasks.push(
+        {
+          id: `t_adhd_${w}_1`,
+          title: `Week ${w}: Neurobiology of Dopamine Baselines & Working Memory`,
+          durationMinutes: dailyMinutes,
+          type: 'TASK',
+          intuitionTip: 'ADHD is not a lack of attention; it is a dysregulation of dopamine-mediated salience and executive signaling.',
+          microSteps: [
+            {
+              title: 'Understanding the Dopamine Valley (45s)',
+              time: '45s',
+              readingMaterial: `### 🧠 The Neurochemistry of Focus in ${cleanTitle}\n\nWhen confronting high-friction tasks, the neurodivergent prefrontal cortex experiences an acute dopamine drop, triggering physical agitation and task-switching impulses.\n\n#### Key Strategies:\n1. **Micro-Momentum (10-Second Rule)**: Make the starting friction so tiny (e.g. open the file, write 1 word) that executive resistance is bypassed.\n2. **External Working Memory Anchors**: Never hold multi-step plans in your head. Render every step in physical or digital checklists.\n3. **Zero-Guilt Buffer Rest**: Neural consolidation requires downtime. Guilt drains dopamine without providing restoration.`
+            },
+            {
+              title: 'Environmental Friction Engineering (2m)',
+              time: '2m',
+              readingMaterial: `### 🛡️ Friction Engineering\n\nWillpower is an exhaustible battery. Design your environment so the right action has 1 less step of friction, and distractions have 2 more steps of friction.`
+            }
+          ]
+        },
+        {
+          id: `t_adhd_${w}_2`,
+          title: `Week ${w}: Overcoming Task Initiation Paralysis`,
+          durationMinutes: dailyMinutes,
+          type: 'TASK',
+          intuitionTip: 'Motion creates emotion. Action precedes motivation, never the reverse.',
+          microSteps: [
+            {
+              title: 'The Activation Energy Protocol (1m)',
+              time: '1m',
+              readingMaterial: `### ⚡ Activation Energy Mechanics\n\nTreat starting a task like striking a match. The energy required to strike the match is 10x the energy required to keep the flame burning.`
+            }
+          ]
+        }
+      );
+    } else if (domain === 'PHILOSOPHY') {
+      allTasks.push(
+        {
+          id: `t_phil_${w}_1`,
+          title: `Week ${w}: The Dichotomy of Control & Mental Clarity`,
+          durationMinutes: dailyMinutes,
+          type: 'TASK',
+          intuitionTip: 'Separate what is up to you (thoughts, actions, impulses) from what is not (outcomes, others, events).',
+          microSteps: [
+            {
+              title: 'First Principles of Stoic Equanimity (45s)',
+              time: '45s',
+              readingMaterial: `### 🏛️ The Core Dichotomy in ${cleanTitle}\n\n*Epictetus wrote:* "Some things are in our control and others not. Things in our control are opinion, pursuit, desire, aversion, and, in a word, whatever are our own actions. Things not in our control are body, property, reputation, command, and, in one word, whatever are not our own actions."\n\n#### Practical Rules:\n1. **Focus 100% of Effort on Internal Inputs**: Judge your success solely on the integrity of your effort, never external randomness.\n2. **Amor Fati (Love of Fate)**: Treat unexpected obstacles not as interruptions, but as the exact material with which to practice virtue.\n3. **Premeditatio Malorum**: Mentally rehearse difficulties in advance so reality never shocks your nervous system.`
+            },
+            {
+              title: 'Reflective Journaling & Evening Review (2m)',
+              time: '2m',
+              readingMaterial: `### 📓 Marcus Aurelius' Daily Reflection\n\nAt the close of each day, ask yourself:\n- Where did I allow external chaos to disturb my peace?\n- Where did I act with patience, courage, and wisdom?\n- What one correction will I apply tomorrow?`
+            }
+          ]
+        }
+      );
+    } else {
+      // General Adaptive Domain
+      allTasks.push(
+        {
+          id: `t_gen_${w}_1`,
+          title: `Week ${w}: Foundational Frameworks of ${cleanTitle}`,
+          durationMinutes: dailyMinutes,
+          type: 'TASK',
+          intuitionTip: `Master the 80/20 primitives that govern 80% of real-world outcomes in this subject.`,
+          microSteps: [
+            {
+              title: `Core Principles & Mental Models of ${cleanTitle} (45s)`,
+              time: '45s',
+              readingMaterial: `### 🎯 Core Focus Objectives - ${cleanTitle}\n\nThe primary goal of this phase is establishing an unbreakable mental framework without getting trapped in cognitive overload.\n\n#### Key Pedagogical Principles:\n1. **First-Principles Thinking**: Rather than memorizing surface rules by rote, uncover the foundational constraints that forced this concept into existence.\n2. **Working Memory Conservation**: Break complex systems into self-contained primitives. Master one primitive completely before coupling them together.\n3. **Immediate Feedback Loops**: Validate every mental model against a concrete real-world example.`
+            },
+            {
+              title: `Architectural Breakdown & Execution Mechanics (2m)`,
+              time: '2m',
+              readingMaterial: `### 💡 Primary Architecture: ${cleanTitle}\n\nTo master this domain, dissect the problem into three operational layers:\n\n1. **Input & Initiation Layer**: What are the non-negotiable prerequisites required before work begins?\n2. **Transformation & Processing**: What deterministic steps transform the input into high-value output?\n3. **Verification & Edge Cases**: How do you detect anomalies and protect against system failure?\n\n> **⚡ Working Memory Anchor:**\n> A clear, simple model executed with consistency beats a complex model that creates analysis paralysis.`
+            },
+            {
+              title: `Practical Synthesis & Reflection Checklist (5m)`,
+              time: '5m',
+              readingMaterial: `### 🛠️ Execution & Synthesis\n\n#### Concrete Reflection:\n- Can you explain the core mechanism in 2 plain sentences to a beginner?\n- What is the biggest point of friction in this domain, and how do you bypass it?\n- Identify 1 immediate project or task where you can apply this principle today.\n\nOnce reviewed, click **Done & Complete Step** to seal this module in memory!`
+            }
+          ]
+        },
+        {
+          id: `t_gen_${w}_2`,
+          title: `Week ${w}: Applied Mechanics & Case Studies`,
+          durationMinutes: dailyMinutes,
+          type: 'TASK',
+          intuitionTip: `Transform theoretical understanding into muscle memory through structured practice.`,
+          microSteps: [
+            {
+              title: `Analyze Concrete Real-World Patterns (1m)`,
+              time: '1m',
+              readingMaterial: `### 🔍 Applied Implementation Patterns in ${cleanTitle}\n\nObserve how leading practitioners approach this domain under real constraints.\n\n- **Pattern A (Linear Flow)**: High predictability, minimal branching.\n- **Pattern B (Hierarchical Convergence)**: Multiple inputs evaluated concurrently before converging on the optimal decision.`
+            }
+          ]
+        }
+      );
+    }
+  }
+
+  return partitionTasksIntoMilestones({
+    allTasks: allTasks,
+    targetWeeks: targetWeeks,
+    overallTitle: cleanTitle,
+    summary: `Structured ${targetWeeks}-week roadmap with progressive micro-goals, comprehensive reading passages, and built-in buffer cushions.`,
+    source: 'heuristic'
+  });
 }
