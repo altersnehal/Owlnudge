@@ -13,14 +13,14 @@ import {
   BookOpen, 
   Lightbulb, 
   Check, 
-  RotateCcw,
-  ChevronDown,
-  ChevronUp,
-  FileText,
-  Upload,
-  Link2,
-  Bell,
-  BellOff
+  ChevronDown, 
+  ChevronUp, 
+  FileText, 
+  Upload, 
+  Bell, 
+  BellOff,
+  Search,
+  CheckCircle
 } from 'lucide-react';
 import { audioService } from '../../services/audioService';
 import { readLocalFile } from '../../services/contentFetcher';
@@ -43,11 +43,11 @@ export default function FocusPlanView({
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [isTickingActive, setIsTickingActive] = useState(true);
   const [activeStepIndex, setActiveStepIndex] = useState(0);
-  const [expandedStepIndex, setExpandedStepIndex] = useState(0); // auto-expand active step's reading
+  const [expandedStepIndex, setExpandedStepIndex] = useState(0);
   const [showStuckModal, setShowStuckModal] = useState(false);
   const [isSessionCompleted, setIsSessionCompleted] = useState(false);
 
-  // Planner State
+  // Ingestion State
   const [goalInput, setGoalInput] = useState(roadmap?.title || "Master Dynamic Programming & Recursion");
   const [targetWeeks, setTargetWeeks] = useState(3);
   const [dailyMinutes, setDailyMinutes] = useState(45);
@@ -57,21 +57,20 @@ export default function FocusPlanView({
   const focusRoomRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // Sync active task
+  // Sync active task change
   useEffect(() => {
     setActiveStepIndex(0);
     setExpandedStepIndex(0);
     setIsSessionCompleted(false);
   }, [activeTask?.id]);
 
-  // Stopwatch Timer loop with procedural mechanical "tik-tik" sound
+  // Stopwatch Timer loop with mechanical "tik-tik" audio synthesis
   useEffect(() => {
     let interval = null;
     if (isRunning && secondsLeft > 0) {
       interval = setInterval(() => {
         setSecondsLeft((prev) => {
           if (prev <= 1) return 0;
-          // Play mechanical tick sound on each second
           if (isTickingActive) {
             audioService.playTick(prev % 2 === 1, 0.08);
           }
@@ -214,35 +213,184 @@ export default function FocusPlanView({
   const milestones = roadmap?.milestones || [];
 
   return (
-    <div className="space-y-12 max-w-xl mx-auto">
+    <div className="space-y-10 max-w-xl mx-auto">
       
       {/* ========================================================================= */}
-      {/* SECTION 1: THE BODY DOUBLER FOCUS ROOM (Tactile Stopwatch & Reader)      */}
+      {/* STEP 1 (TOP): SOURCE INGESTION & TOPIC/DOC SLICER (Clear Natural Flow)     */}
       {/* ========================================================================= */}
-      <section ref={focusRoomRef} className="space-y-8 text-center pt-2">
+      <section className="space-y-3.5 text-left bg-white rounded-3xl p-5 sm:p-6 shadow-[0_10px_30px_-5px_rgba(15,61,35,0.04)] border border-slate-100">
+        
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+          <div>
+            <h2 className="font-display font-bold text-base sm:text-lg text-forest-950 tracking-tight flex items-center gap-2">
+              <Search className="w-4 h-4 text-emerald-700" />
+              <span>What would you like to master?</span>
+            </h2>
+            <p className="text-xs text-slate-500 font-sans">
+              Paste article/course link, upload <strong>.md / .pdf</strong>, or search any topic.
+            </p>
+          </div>
+
+          <span className="text-[11px] font-mono text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full font-semibold shrink-0 self-start sm:self-auto">
+            {roadmap?.bufferDaysCount || targetWeeks * 2} Buffer Days 🛡️
+          </span>
+        </div>
+
+        {/* Input Bar with Embedded File Upload Button */}
+        <form onSubmit={handleGenerate} className="space-y-3 pt-1">
+          <div className="relative">
+            <input
+              type="text"
+              value={goalInput}
+              onChange={(e) => setGoalInput(e.target.value)}
+              placeholder="Paste article URL, Udemy link, or topic (e.g. React 19, DP)..."
+              className="w-full pl-4 pr-24 py-3.5 rounded-2xl bg-[#F8FAF8] text-xs sm:text-sm font-medium text-forest-950 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition placeholder:text-slate-400 border border-slate-200/60"
+            />
+
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {/* File Upload Button (.md, .pdf, .txt) */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                accept=".md,.txt,.pdf,.markdown"
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="p-1.5 px-2.5 rounded-xl bg-white hover:bg-emerald-50 text-slate-600 hover:text-emerald-900 transition text-[11px] flex items-center gap-1 font-medium shadow-xs border border-slate-200/60"
+                title="Upload Markdown or PDF document"
+              >
+                <Upload className="w-3.5 h-3.5 text-emerald-700" />
+                <span className="hidden sm:inline">Upload</span>
+              </button>
+
+              {goalInput && (
+                <button
+                  type="button"
+                  onClick={() => setGoalInput('')}
+                  className="text-xs text-slate-400 hover:text-slate-600 w-5 h-5 flex items-center justify-center rounded-full bg-slate-200/80"
+                  title="Clear"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+
+          {uploadedFileName && (
+            <div className="p-2.5 bg-emerald-50 rounded-xl text-xs font-mono text-emerald-900 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5 text-emerald-700" />
+                <span>Uploaded: {uploadedFileName}</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setUploadedFileName(null)}
+                className="text-emerald-700 underline text-[11px]"
+              >
+                Remove
+              </button>
+            </div>
+          )}
+
+          {/* 1-Click Curated Suggestion Chips */}
+          <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500">
+            <span className="font-mono text-slate-400 mr-0.5">Quick ideas:</span>
+            <button
+              type="button"
+              onClick={() => handlePresetSelect('Master Dynamic Programming & Recursion')}
+              className="px-2.5 py-1 rounded-full bg-[#F8FAF8] hover:bg-emerald-50 text-forest-900 shadow-xs transition active:scale-95 border border-slate-200/50"
+            >
+              🎯 Dynamic Programming
+            </button>
+            <button
+              type="button"
+              onClick={() => handlePresetSelect('https://www.udemy.com/course/the-complete-react-guide')}
+              className="px-2.5 py-1 rounded-full bg-[#F8FAF8] hover:bg-emerald-50 text-forest-900 shadow-xs transition active:scale-95 border border-slate-200/50"
+            >
+              🎓 Udemy React Link
+            </button>
+            <button
+              type="button"
+              onClick={() => handlePresetSelect('https://medium.com/@engineering/system-design-primer')}
+              className="px-2.5 py-1 rounded-full bg-[#F8FAF8] hover:bg-emerald-50 text-forest-900 shadow-xs transition active:scale-95 border border-slate-200/50"
+            >
+              📝 Medium System Design
+            </button>
+          </div>
+
+          {/* Pacing Configuration Controls & Primary Slicing Button */}
+          <div className="flex flex-wrap items-center justify-between gap-3 text-xs pt-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="text-slate-500 font-sans flex items-center gap-1">
+                <span>Timeline:</span>
+                <select
+                  value={targetWeeks}
+                  onChange={(e) => setTargetWeeks(Number(e.target.value))}
+                  className="bg-[#F8FAF8] rounded-lg px-2 py-1 font-semibold text-forest-950 border border-slate-200 focus:outline-none"
+                >
+                  <option value={2}>2 Weeks</option>
+                  <option value={3}>3 Weeks</option>
+                  <option value={4}>4 Weeks</option>
+                </select>
+              </label>
+
+              <label className="text-slate-500 font-sans flex items-center gap-1">
+                <span>Cap:</span>
+                <select
+                  value={dailyMinutes}
+                  onChange={(e) => setDailyMinutes(Number(e.target.value))}
+                  className="bg-[#F8FAF8] rounded-lg px-2 py-1 font-semibold text-forest-950 border border-slate-200 focus:outline-none"
+                >
+                  <option value={30}>30 mins / day</option>
+                  <option value={45}>45 mins / day</option>
+                  <option value={60}>60 mins / day</option>
+                </select>
+              </label>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isGenerating}
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm active:scale-95 transition duration-100 disabled:opacity-50 flex items-center justify-center gap-1.5"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>{isGenerating ? 'Deconstructing Reading...' : 'Slice Goal with Buffer Days 🛡️'}</span>
+            </button>
+          </div>
+        </form>
+
+      </section>
+
+      {/* ========================================================================= */}
+      {/* STEP 2 (CENTER): ACTIVE FOCUS ROOM & BODY DOUBLER (Execution Hero)        */}
+      {/* ========================================================================= */}
+      <section ref={focusRoomRef} className="space-y-7 text-center pt-2">
         
         {/* Companion Mascot & Ambient Dialogue */}
-        <div className="flex flex-col items-center justify-center space-y-3">
-          <div className={`w-20 h-20 sm:w-22 sm:h-22 rounded-full bg-emerald-50/80 p-2.5 flex items-center justify-center transition-all duration-300 ${isRunning ? 'animate-[breath_5s_ease-in-out_infinite] scale-105' : ''}`}>
+        <div className="flex flex-col items-center justify-center space-y-2.5">
+          <div className={`w-20 h-20 sm:w-22 sm:h-22 rounded-full bg-emerald-50/80 p-2.5 flex items-center justify-center transition-all duration-300 ${isRunning ? 'animate-breath scale-105' : ''}`}>
             <img src="/assets/mascot.png" alt="Owlnudge Companion" className="w-full h-full object-contain" />
           </div>
           <p className="text-xs text-forest-800/80 font-sans max-w-xs transition-opacity duration-200">
             {isSessionCompleted
-              ? "Session completed! Celebrate this micro-win."
+              ? "Sprint completed! Notice how good closure feels."
               : isRunning
               ? "I'm sitting beside you. Read Step 1 and press Done."
               : "Ready when you are. Press Start Sprint to begin."}
           </p>
         </div>
 
-        {/* Apple-Style Stopwatch Timer with Burst Selectors */}
+        {/* Apple-Style Stopwatch Digital Timer with Burst Selectors */}
         <div className="space-y-3 select-none">
           <div className="font-mono font-semibold text-5xl sm:text-7xl text-forest-950 tracking-tight">
             {formatTime(secondsLeft)}
           </div>
 
           {/* Burst Pacing Presets */}
-          <div className="flex items-center justify-center gap-1.5 pt-1">
+          <div className="flex items-center justify-center gap-1.5 pt-0.5">
             <button
               onClick={() => handleSelectBurstDuration(10)}
               className={`px-3 py-1 rounded-full text-[11px] font-mono transition active:scale-95 ${
@@ -276,8 +424,8 @@ export default function FocusPlanView({
           </div>
         </div>
 
-        {/* Active Task Card with Intuition & Expandable Reading Material */}
-        <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-[0_12px_32px_-4px_rgba(15,61,35,0.06),0_2px_6px_0_rgba(0,0,0,0.02)] text-left space-y-4">
+        {/* Active Task Card with Intuition & Expandable Micro-Step Reading */}
+        <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-[0_12px_32px_-4px_rgba(15,61,35,0.06),0_2px_6px_0_rgba(0,0,0,0.02)] text-left space-y-4 border border-slate-100">
           
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -296,7 +444,7 @@ export default function FocusPlanView({
               {activeTask?.title || "Climbing Stairs (Visualizing Base Cases)"}
             </h3>
 
-            {/* Pinned Intuition Anchor (Defeating Leaky Bucket) */}
+            {/* Pinned Working Memory Anchor Flashcard */}
             {activeTask?.intuitionTip && (
               <div className="mt-2.5 p-3 rounded-xl bg-[#F8FAF8] flex items-start gap-2.5 border-l-2 border-emerald-500">
                 <Lightbulb className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
@@ -307,7 +455,7 @@ export default function FocusPlanView({
             )}
           </div>
 
-          {/* Expandable / Collapsible Micro-Steps with Inline Reading Material */}
+          {/* Sequential Micro-Steps with Expandable Reading Passages */}
           <div className="space-y-2.5 pt-1">
             <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wide block">
               Micro-Steps & Reading Material
@@ -332,9 +480,9 @@ export default function FocusPlanView({
                       <span className="w-4 h-4 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center justify-center shrink-0">
                         ✓
                       </span>
-                      <span className="line-through">{stepTitle}</span>
+                      <span className="line-through text-slate-400">{stepTitle}</span>
                     </div>
-                    <span className="text-[10px] font-mono text-emerald-700">Completed</span>
+                    <span className="text-[10px] font-mono text-emerald-700 font-medium">Completed</span>
                   </div>
                 );
               }
@@ -344,14 +492,14 @@ export default function FocusPlanView({
                   key={idx} 
                   className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
                     isCurrent 
-                      ? 'bg-emerald-50/50 border-emerald-300 shadow-xs' 
+                      ? 'bg-emerald-50/40 border-emerald-300 shadow-xs' 
                       : 'bg-[#F8FAF8] border-slate-100 opacity-60'
                   }`}
                 >
                   {/* Step Header Toggle */}
                   <div 
                     onClick={() => setExpandedStepIndex(isExpanded ? null : idx)}
-                    className="p-3.5 flex items-center justify-between gap-3 cursor-pointer select-none hover:bg-emerald-50/80 transition"
+                    className="p-3.5 flex items-center justify-between gap-3 cursor-pointer select-none hover:bg-emerald-50/70 transition"
                   >
                     <div className="flex items-center gap-2.5">
                       <span className={`w-5 h-5 rounded-full flex items-center justify-center font-mono text-xs font-bold shrink-0 ${
@@ -361,7 +509,7 @@ export default function FocusPlanView({
                       </span>
                       <div>
                         <p className="text-xs font-bold text-forest-950">{stepTitle}</p>
-                        <p className="text-[10px] text-slate-400 font-mono">~{stepTime} · Tap to view reading material</p>
+                        <p className="text-[10px] text-slate-400 font-mono">~{stepTime} · Click to expand reading</p>
                       </div>
                     </div>
 
@@ -381,7 +529,6 @@ export default function FocusPlanView({
                   {/* Collapsible Reading Material Container */}
                   {isExpanded && (
                     <div className="px-4 pb-4 pt-2 border-t border-emerald-100 bg-white/90 space-y-3 text-left animate-in fade-in duration-150">
-                      
                       {reading ? (
                         <div className="p-3.5 bg-[#F8FAF8] rounded-xl text-xs text-forest-950 font-sans leading-relaxed whitespace-pre-line border border-emerald-100/60 max-h-56 overflow-y-auto">
                           {reading}
@@ -392,10 +539,10 @@ export default function FocusPlanView({
                         </p>
                       )}
 
-                      {/* Explicit "Done / Completed" Button on Reading Material */}
+                      {/* Explicit "Done & Complete Step" Button */}
                       {isCurrent && (
                         <div className="flex items-center justify-between pt-1">
-                          <span className="text-[11px] text-slate-400 font-sans">Done reading?</span>
+                          <span className="text-[11px] text-slate-400 font-sans">Done reading this concept?</span>
                           <button
                             onClick={() => handleStepComplete(idx)}
                             className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm active:scale-95 transition flex items-center gap-1.5"
@@ -414,7 +561,7 @@ export default function FocusPlanView({
 
         </div>
 
-        {/* Tactile Control Bar with Brown Noise + Mechanical Tik-Tik Sound */}
+        {/* Tactile Control Bar: Start Sprint, Done, Tik-Tik, Brown Noise, Stuck */}
         <div className="flex flex-wrap items-center justify-center gap-2.5 pt-1">
           
           {/* Start / Pause Sprint */}
@@ -430,7 +577,7 @@ export default function FocusPlanView({
             <span>{isRunning ? 'Pause Sprint' : 'Start Sprint'}</span>
           </button>
 
-          {/* Explicit Session Done Button */}
+          {/* Session Complete Button */}
           <button
             onClick={() => handleCompleteSession(false)}
             className="px-4 py-2.5 rounded-full text-xs font-semibold bg-emerald-800 hover:bg-emerald-900 text-white shadow-sm active:scale-95 transition-all duration-150 flex items-center gap-1.5"
@@ -440,7 +587,7 @@ export default function FocusPlanView({
             <span>Done</span>
           </button>
 
-          {/* Tik-Tik Mechanical Clock Sound Toggle */}
+          {/* Tik-Tik Stopwatch Sound Toggle */}
           <button
             onClick={toggleTickingSound}
             className={`px-3.5 py-2.5 rounded-full text-xs font-medium flex items-center gap-1.5 shadow-sm active:scale-95 transition-all duration-150 ${
@@ -458,7 +605,7 @@ export default function FocusPlanView({
             <span>{isTickingActive ? 'Tik-Tik (On)' : 'Tik-Tik'}</span>
           </button>
 
-          {/* Brown Noise Audio Generator */}
+          {/* Brown Noise Generator */}
           <button
             onClick={toggleBrownNoise}
             className={`px-3.5 py-2.5 rounded-full text-xs font-medium flex items-center gap-1.5 shadow-sm active:scale-95 transition-all duration-150 ${
@@ -475,7 +622,7 @@ export default function FocusPlanView({
             <span>{isAudioPlaying ? 'Brown Noise (On)' : 'Brown Noise'}</span>
           </button>
 
-          {/* I'm Feeling Stuck Emergency Helper */}
+          {/* I'm Feeling Stuck Helper */}
           <button
             onClick={() => setShowStuckModal(true)}
             className="px-3.5 py-2 text-xs text-slate-400 hover:text-slate-700 font-sans active:scale-95 transition duration-100 flex items-center gap-1.5"
@@ -548,161 +695,31 @@ export default function FocusPlanView({
       </section>
 
       {/* ========================================================================= */}
-      {/* SECTION 2: THE LIVING PLAN & CONTENT INGESTION (URLs, PDFs, MD Files)     */}
+      {/* STEP 3 (BOTTOM): THE LIVING CURRICULUM ROADMAP (Weekly Milestone Drawer)  */}
       {/* ========================================================================= */}
-      <section className="space-y-6 pt-6 border-t border-slate-200/60 text-left">
+      <section className="space-y-4 pt-6 border-t border-slate-200/60 text-left">
         
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div>
-            <h2 className="font-display font-bold text-lg sm:text-xl text-forest-950 tracking-tight flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-emerald-700" />
-              <span>Living Curriculum & Content Ingestion</span>
-            </h2>
-            <p className="text-xs text-slate-500 font-sans mt-0.5">
-              Paste any article link, course URL, or upload <strong>.md / .pdf</strong> files for automatic reading breakdown.
-            </p>
+        <div className="flex items-center justify-between px-1">
+          <div className="flex items-center gap-2">
+            <BookOpen className="w-4 h-4 text-emerald-700" />
+            <h3 className="font-display font-bold text-sm sm:text-base text-forest-950">
+              Curriculum Roadmap Overview
+            </h3>
           </div>
-
-          <div className="flex items-center gap-1 text-[11px] font-mono text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full font-semibold shrink-0">
-            <Shield className="w-3.5 h-3.5 text-emerald-600" />
-            <span>{roadmap?.bufferDaysCount || targetWeeks * 2} Buffer Days Injected</span>
-          </div>
+          <span className="text-[11px] font-mono text-slate-400">
+            Click any task to load into Focus Room
+          </span>
         </div>
 
-        {/* Natural Search, Link Ingestion, and File Upload Form */}
-        <form onSubmit={handleGenerate} className="space-y-3">
-          <div className="relative">
-            <input
-              type="text"
-              value={goalInput}
-              onChange={(e) => setGoalInput(e.target.value)}
-              placeholder="Paste article URL, Udemy link, or topic..."
-              className="w-full pl-4 pr-24 py-3.5 sm:py-4 rounded-2xl bg-white shadow-[0_4px_20px_-2px_rgba(15,61,35,0.03),0_1px_3px_0_rgba(0,0,0,0.02)] text-xs sm:text-sm font-medium text-forest-950 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition placeholder:text-slate-300"
-            />
-
-            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
-              {/* File Upload Button (.md, .pdf, .txt) */}
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileUpload}
-                accept=".md,.txt,.pdf,.markdown"
-                className="hidden"
-              />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="p-1.5 rounded-xl bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-emerald-800 transition text-[11px] flex items-center gap-1 font-medium"
-                title="Upload Markdown or PDF document"
-              >
-                <Upload className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Upload</span>
-              </button>
-
-              {goalInput && (
-                <button
-                  type="button"
-                  onClick={() => setGoalInput('')}
-                  className="text-xs text-slate-400 hover:text-slate-600 w-5 h-5 flex items-center justify-center rounded-full bg-slate-100"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-          </div>
-
-          {uploadedFileName && (
-            <div className="p-2.5 bg-emerald-50 rounded-xl text-xs font-mono text-emerald-900 flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5 text-emerald-700" />
-                <span>Uploaded: {uploadedFileName}</span>
-              </span>
-              <button
-                type="button"
-                onClick={() => setUploadedFileName(null)}
-                className="text-emerald-700 underline text-[11px]"
-              >
-                Remove
-              </button>
-            </div>
-          )}
-
-          {/* Quick Clickable Suggestions */}
-          <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500">
-            <span className="font-mono text-slate-400 mr-0.5">Quick ideas:</span>
-            <button
-              type="button"
-              onClick={() => handlePresetSelect('Master Dynamic Programming & Recursion')}
-              className="px-2.5 py-1 rounded-full bg-white hover:bg-emerald-50 text-forest-900 shadow-xs transition active:scale-95"
-            >
-              🎯 Dynamic Programming
-            </button>
-            <button
-              type="button"
-              onClick={() => handlePresetSelect('https://www.udemy.com/course/the-complete-react-guide')}
-              className="px-2.5 py-1 rounded-full bg-white hover:bg-emerald-50 text-forest-900 shadow-xs transition active:scale-95"
-            >
-              🎓 Udemy React Link
-            </button>
-            <button
-              type="button"
-              onClick={() => handlePresetSelect('https://medium.com/@engineering/system-design-primer')}
-              className="px-2.5 py-1 rounded-full bg-white hover:bg-emerald-50 text-forest-900 shadow-xs transition active:scale-95"
-            >
-              📝 Medium System Design
-            </button>
-          </div>
-
-          {/* Pacing Configuration Controls */}
-          <div className="flex flex-wrap items-center justify-between gap-3 text-xs pt-1">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <label className="text-slate-500 font-sans flex items-center gap-1.5">
-                <span>Timeline:</span>
-                <select
-                  value={targetWeeks}
-                  onChange={(e) => setTargetWeeks(Number(e.target.value))}
-                  className="bg-white rounded-lg px-2 py-1 font-semibold text-forest-950 shadow-sm focus:outline-none"
-                >
-                  <option value={2}>2 Weeks</option>
-                  <option value={3}>3 Weeks (Recommended)</option>
-                  <option value={4}>4 Weeks</option>
-                </select>
-              </label>
-
-              <label className="text-slate-500 font-sans flex items-center gap-1.5">
-                <span>Daily Cap:</span>
-                <select
-                  value={dailyMinutes}
-                  onChange={(e) => setDailyMinutes(Number(e.target.value))}
-                  className="bg-white rounded-lg px-2 py-1 font-semibold text-forest-950 shadow-sm focus:outline-none"
-                >
-                  <option value={30}>30 mins / day</option>
-                  <option value={45}>45 mins / day</option>
-                  <option value={60}>60 mins / day</option>
-                </select>
-              </label>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isGenerating}
-              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm active:scale-95 transition duration-100 disabled:opacity-50 flex items-center justify-center gap-1.5"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>{isGenerating ? 'Fetching & Slicing Reading...' : 'Fetch & Slice Reading 🛡️'}</span>
-            </button>
-          </div>
-        </form>
-
-        {/* Milestone Cards List */}
-        <div className="space-y-3 pt-2">
+        {/* Milestone Accordion List */}
+        <div className="space-y-3">
           {milestones.map((milestone) => {
             const isOpen = openMilestoneId === milestone.id;
 
             return (
               <div
                 key={milestone.id}
-                className="bg-white rounded-2xl shadow-[0_4px_20px_-2px_rgba(15,61,35,0.03)] overflow-hidden transition-all duration-200"
+                className="bg-white rounded-2xl shadow-[0_4px_20px_-2px_rgba(15,61,35,0.03)] overflow-hidden transition-all duration-200 border border-slate-100"
               >
                 {/* Milestone Toggle Header */}
                 <div
