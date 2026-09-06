@@ -23,6 +23,111 @@ import { audioService } from '../../services/audioService';
 import { readLocalFile } from '../../services/contentFetcher';
 import confetti from 'canvas-confetti';
 
+function formatInlineText(text) {
+  if (!text) return '';
+  const parts = text.split(/(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('`') && part.endsWith('`')) {
+      return (
+        <code key={i} className="font-mono text-[11px] bg-emerald-100/70 text-emerald-900 px-1.5 py-0.5 rounded border border-emerald-200/50">
+          {part.slice(1, -1)}
+        </code>
+      );
+    }
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i} className="font-bold text-forest-950">{part.slice(2, -2)}</strong>;
+    }
+    if (part.startsWith('*') && part.endsWith('*')) {
+      return <em key={i} className="italic text-forest-900/90">{part.slice(1, -1)}</em>;
+    }
+    return part;
+  });
+}
+
+function renderFormattedReading(readingText) {
+  if (!readingText) return null;
+  const lines = readingText.split('\n');
+  let inCodeBlock = false;
+  let codeBuffer = [];
+  const elements = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    if (trimmed.startsWith('```')) {
+      if (inCodeBlock) {
+        elements.push(
+          <div key={`code-${i}`} className="p-3 bg-forest-950 text-emerald-200 rounded-xl font-mono text-xs overflow-x-auto leading-relaxed border border-forest-900 shadow-xs my-2">
+            <pre className="whitespace-pre">{codeBuffer.join('\n')}</pre>
+          </div>
+        );
+        codeBuffer = [];
+        inCodeBlock = false;
+      } else {
+        inCodeBlock = true;
+      }
+      continue;
+    }
+
+    if (inCodeBlock) {
+      codeBuffer.push(line);
+      continue;
+    }
+
+    if (!trimmed) continue;
+
+    if (trimmed.startsWith('### ')) {
+      elements.push(
+        <h4 key={i} className="font-display font-bold text-sm sm:text-base text-forest-950 pt-2 pb-1 border-b border-emerald-100/60">
+          {trimmed.replace('### ', '')}
+        </h4>
+      );
+    } else if (trimmed.startsWith('#### ')) {
+      elements.push(
+        <h5 key={i} className="font-bold text-xs sm:text-sm text-forest-900 pt-1.5">
+          {trimmed.replace('#### ', '')}
+        </h5>
+      );
+    } else if (trimmed.startsWith('> ')) {
+      elements.push(
+        <blockquote key={i} className="p-3 my-2 bg-emerald-50/80 rounded-xl border-l-2 border-emerald-500 text-xs text-emerald-950 leading-relaxed">
+          {formatInlineText(trimmed.replace('> ', ''))}
+        </blockquote>
+      );
+    } else if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+      elements.push(
+        <div key={i} className="flex items-start gap-2 pl-1 py-0.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 mt-1.5 shrink-0" />
+          <p className="flex-1 text-xs sm:text-sm text-forest-900/90 leading-relaxed">
+            {formatInlineText(trimmed.replace(/^[-*]\s+/, ''))}
+          </p>
+        </div>
+      );
+    } else if (/^\d+\.\s/.test(trimmed)) {
+      const match = trimmed.match(/^(\d+)\.\s/);
+      const num = match[1];
+      const rest = trimmed.slice(match[0].length);
+      elements.push(
+        <div key={i} className="flex items-start gap-2 pl-1 py-0.5">
+          <span className="font-mono text-xs font-bold text-emerald-700 shrink-0 mt-0.5">{num}.</span>
+          <p className="flex-1 text-xs sm:text-sm text-forest-900/90 leading-relaxed">
+            {formatInlineText(rest)}
+          </p>
+        </div>
+      );
+    } else {
+      elements.push(
+        <p key={i} className="text-xs sm:text-sm text-forest-900/90 leading-relaxed">
+          {formatInlineText(trimmed)}
+        </p>
+      );
+    }
+  }
+
+  return <div className="space-y-2">{elements}</div>;
+}
+
 export default function FocusPlanView({ 
   roadmap, 
   activeTask, 
@@ -208,19 +313,52 @@ export default function FocusPlanView({
 
   const microSteps = activeTask?.microSteps || [
     {
-      title: 'Open LeetCode #70 & Read Base Cases (30s)',
+      title: 'Scan Core Objectives & Thesis (45s)',
       time: '45s',
-      readingMaterial: `### 🧗 Climbing Stairs Intuition\n\nTo reach step \`n\`, you can only come from:\n1. Step \`n - 1\` (by taking a 1-step leap)\n2. Step \`n - 2\` (by taking a 2-step leap)\n\nTherefore, total ways to reach step \`n\` is simply:\n\`ways(n) = ways(n - 1) + ways(n - 2)\``
+      readingMaterial: `### 🎯 Core Focus Objectives - Foundational Overview & Key Mental Models
+
+The primary goal of this sprint is establishing a rock-solid mental framework without getting trapped in cognitive overload or premature rabbit holes.
+
+#### Key Principles:
+1. **The 80/20 Foundation**: 80% of real-world outcomes in this subject stem from mastering 3 core primitives. Our focus is zeroing in on those foundational primitives before touching secondary edge cases.
+2. **First-Principles Thinking**: Rather than memorizing rules or steps by rote, understand the root problem that forced the creation of this paradigm. When you understand *why* a constraint exists, the solution becomes self-evident.
+3. **Working Memory Conservation**: Neurodivergent learners excel when concepts are chunked into self-contained units. Read this overview once to form an overarching mental map, then move directly to step 2.`
     },
     {
-      title: 'Visual Recurrence & Napkin Drawing (2m)',
+      title: 'Deep Concept Reading: The Execution Architecture (2m)',
       time: '2m',
-      readingMaterial: `### 🌲 The Subproblem Call Tree\n\nNotice that \`ways(4)\` calls \`ways(3)\` and \`ways(2)\`.\nWithout memoization, subproblems are re-calculated repeatedly.\nWith DP caching: \`dp[i] = dp[i-1] + dp[i-2]\`, every step is calculated exactly once in O(n) time.`
+      readingMaterial: `### 💡 Primary Architecture & Framework
+
+To master this subject, break the entire domain into three continuous operational layers:
+
+#### 1. Input & Initiation Layer
+Every effective system starts with unambiguous inputs. In this domain, failure to define boundary conditions early leads to cognitive friction and analysis paralysis. Always ask: *"What are the non-negotiable inputs required to trigger execution?"*
+
+#### 2. Processing & State Transition
+At its core, this concept transforms raw inputs into structured outcomes through a series of deterministic state changes. When dissecting any complex problem:
+- Isolate the individual transformations one step at a time.
+- Verify each intermediate state independently before coupling them together.
+- Keep state mutations localized and predictable.
+
+#### 3. Output Validation & Feedback Loops
+Without an immediate feedback loop, learning decay occurs within hours. Build a micro-verification checkpoint after each concept to prove that your mental model matches reality.
+
+> **💡 Mental Model Takeaway:**
+> A simple model that you can execute under stress is 10x more valuable than a complex model you abandon.`
     },
     {
-      title: 'Code the 3-line State Transition (10m)',
-      time: '10m',
-      readingMaterial: `### 💻 3-Line Solution Pattern\n\n\`\`\`javascript\nlet prev1 = 1, prev2 = 2;\nfor (let i = 3; i <= n; i++) {\n  let curr = prev1 + prev2;\n  prev1 = prev2;\n  prev2 = curr;\n}\nreturn prev2;\n\`\`\``
+      title: 'Practical Synthesis & Reflection Prompt (5m)',
+      time: '5m',
+      readingMaterial: `### 🛠️ Synthesis & Real-World Application
+
+Now that the core principles and architecture are clear, let's cement the knowledge into long-term memory.
+
+#### Reflection Checklist:
+- Can you explain the core mechanism in 2 sentences to someone outside the field?
+- Where is the single biggest point of friction when applying this concept, and how does the framework bypass it?
+- What is one tangible project or problem you can test this on today?
+
+Once you have read and internalized these three pillars, hit **Done & Complete Step** below to seal the loop!`
     }
   ];
 
@@ -544,21 +682,21 @@ export default function FocusPlanView({
 
                 {/* Collapsible Reading Material Container */}
                 {isExpanded && (
-                  <div className="px-4 pb-4 pt-2 border-t border-emerald-100 bg-white/90 space-y-3 text-left animate-in fade-in duration-150">
+                  <div className="px-4 pb-4 pt-2.5 border-t border-emerald-100 bg-white/95 space-y-3.5 text-left animate-in fade-in duration-150">
                     {reading ? (
-                      <div className="p-3.5 bg-[#F8FAF8] rounded-xl text-xs text-forest-950 font-sans leading-relaxed whitespace-pre-line border border-emerald-100/60 max-h-56 overflow-y-auto">
-                        {reading}
+                      <div className="p-4 bg-[#F8FAF8] rounded-2xl border border-emerald-100/70 text-forest-950 font-sans shadow-xs">
+                        {renderFormattedReading(reading)}
                       </div>
                     ) : (
-                      <p className="text-xs text-slate-500 font-sans italic">
+                      <p className="text-xs text-slate-500 font-sans italic p-2">
                         Execute this micro-step in your workspace, code editor, or notepad.
                       </p>
                     )}
 
                     {/* Explicit "Done & Complete Step" Button */}
                     {isCurrent && (
-                      <div className="flex items-center justify-between pt-1">
-                        <span className="text-[11px] text-slate-400 font-sans">Done reading this concept?</span>
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100">
+                        <span className="text-xs text-slate-400 font-sans">Finished absorbing this section?</span>
                         <button
                           onClick={() => handleStepComplete(idx)}
                           className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm active:scale-95 transition flex items-center gap-1.5"

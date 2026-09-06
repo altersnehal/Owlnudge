@@ -314,14 +314,52 @@ function generateHeuristicRoadmap(goalText, targetWeeks, dailyMinutes, extracted
             intuitionTip: 'Understand the big picture before diving into mechanics.',
             microSteps: [
               {
-                title: 'Scan Core Objectives (45s)',
+                title: 'Scan Core Objectives & Thesis (45s)',
                 time: '45s',
-                readingMaterial: `### 🎯 Core Focus Objectives\n\n- Identify the 3 most crucial takeaways in ${detectedTitle}.\n- Focus on clarity and practical utility rather than exhaustive theory.\n- Remember: 1 clear mental model beats 10 memorized bullet points.`
+                readingMaterial: `### 🎯 Core Focus Objectives - ${detectedTitle}
+
+The primary goal of this phase is establishing a rock-solid mental framework without getting trapped in cognitive overload or premature rabbit holes.
+
+#### Key Principles:
+1. **The 80/20 Foundation**: 80% of real-world outcomes in this subject stem from mastering 3 core primitives. Our focus is zeroing in on those foundational primitives before touching secondary edge cases.
+2. **First-Principles Thinking**: Rather than memorizing rules or steps by rote, understand the root problem that forced the creation of this paradigm. When you understand *why* a constraint exists, the solution becomes self-evident.
+3. **Working Memory Conservation**: Neurodivergent learners excel when concepts are chunked into self-contained units. Read this overview once to form an overarching mental map, then move directly to step 2.`
               },
               {
-                title: 'Deep Concept Reading (2m)',
+                title: 'Deep Concept Reading: The Execution Architecture (2m)',
                 time: '2m',
-                readingMaterial: `### 💡 Primary Framework\n\nBreak the topic into input, process, and output.\nWhen learning complex systems, ask:\n1. What problem was this created to solve?\n2. What are the common pitfalls?\n3. What is the minimal viable example?`
+                readingMaterial: `### 💡 Primary Architecture & Framework
+
+To master **${detectedTitle}**, break the entire domain into three continuous operational layers:
+
+#### 1. Input & Initiation Layer
+Every effective system starts with unambiguous inputs. In this domain, failure to define boundary conditions early leads to cognitive friction and analysis paralysis. Always ask: *"What are the non-negotiable inputs required to trigger execution?"*
+
+#### 2. Processing & State Transition
+At its core, this concept transforms raw inputs into structured outcomes through a series of deterministic state changes. When dissecting any complex problem:
+- Isolate the individual transformations one step at a time.
+- Verify each intermediate state independently before coupling them together.
+- Keep state mutations localized and predictable.
+
+#### 3. Output Validation & Feedback Loops
+Without an immediate feedback loop, learning decay occurs within hours. Build a micro-verification checkpoint after each concept to prove that your mental model matches reality.
+
+> **💡 Mental Model Takeaway:**
+> A simple model that you can execute under stress is 10x more valuable than a complex model you abandon.`
+              },
+              {
+                title: 'Practical Synthesis & Reflection Prompt (5m)',
+                time: '5m',
+                readingMaterial: `### 🛠️ Synthesis & Real-World Application
+
+Now that the core principles and architecture are clear, let's cement the knowledge into long-term memory.
+
+#### Reflection Checklist:
+- Can you explain the core mechanism in 2 sentences to someone outside the field?
+- Where is the single biggest point of friction when applying this concept, and how does the framework bypass it?
+- What is one tangible project or problem you can test this on today?
+
+Once you have read and internalized these three pillars, hit **Done & Complete Step** to seal the loop!`
               }
             ]
           },
@@ -330,8 +368,29 @@ function generateHeuristicRoadmap(goalText, targetWeeks, dailyMinutes, extracted
             title: 'Buffer Day 1 (Zero-Guilt Rest)',
             durationMinutes: 0,
             type: 'BUFFER',
-            intuitionTip: 'Rest allows neural consolidation.',
+            intuitionTip: 'Rest allows neural consolidation and resets cognitive bandwidth.',
             microSteps: []
+          },
+          {
+            id: 't1_2',
+            title: 'Core Mechanics & Hands-on Implementation',
+            durationMinutes: dailyMinutes,
+            type: 'TASK',
+            intuitionTip: 'Turn abstract understanding into muscle memory through concrete practice.',
+            microSteps: [
+              {
+                title: 'Analyze Applied Patterns (1m)',
+                time: '1m',
+                readingMaterial: `### 🔍 Applied Implementation Patterns
+
+Moving from theory to execution requires recognizing common recurring patterns in the wild.
+
+- **Pattern A (Linear Flow)**: Best suited for predictable, sequential workloads where each step directly depends on the preceding output.
+- **Pattern B (Hierarchical Branching)**: Used when decisions must be evaluated across multiple conditions before converging back to a unified output.
+
+Notice how both patterns follow the same fundamental architecture you learned in Module 1.`
+              }
+            ]
           }
         ]
       }
