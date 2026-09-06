@@ -5,6 +5,7 @@ import DailyCheckin from './components/checkin/DailyCheckin';
 import BodyDoubler from './components/bodydouble/BodyDoubler';
 import MomentumDashboard from './components/dashboard/MomentumDashboard';
 import RecoveryModal from './components/recovery/RecoveryModal';
+import RecoveryView from './components/recovery/RecoveryView';
 import { generateRoadmap } from './services/aiEngine';
 import { loadStoredState, saveStoredState } from './services/storageService';
 
@@ -104,7 +105,7 @@ export default function App() {
       />
 
       {/* Main Single-Focus Content Workspace */}
-      <main className="flex-1 max-w-xl w-full mx-auto px-4 sm:px-6 py-6 pb-24">
+      <main className="flex-1 max-w-2xl w-full mx-auto px-4 sm:px-6 py-6 pb-24">
         {activeTab === 'bodydouble' && (
           <BodyDoubler
             activeTask={activeTask}
@@ -125,6 +126,15 @@ export default function App() {
           <DailyCheckin
             activeTask={activeTask}
             onLaunchBodyDouble={handleLaunchBodyDouble}
+          />
+        )}
+
+        {activeTab === 'recovery' && (
+          <RecoveryView
+            bufferDaysRemaining={stats.buffersRemaining}
+            totalBufferDays={roadmap?.bufferDaysCount || 6}
+            onClaimWin={handleClaimWin}
+            onResumeFocus={() => setActiveTab('bodydouble')}
           />
         )}
 

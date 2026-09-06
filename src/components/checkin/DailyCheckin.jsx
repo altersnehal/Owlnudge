@@ -1,10 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function DailyCheckin({ onLaunchBodyDouble, activeTask }) {
   const [selectedEnergy, setSelectedEnergy] = useState(null);
-  const [somaticDone, setSomaticDone] = useState(false);
+  const [showSomatic, setShowSomatic] = useState(false);
+  const [breathCount, setBreathCount] = useState(4);
+  const [breathPhase, setBreathPhase] = useState('Inhale');
   const [eveningWin, setEveningWin] = useState('');
   const [eveningLogged, setEveningLogged] = useState(false);
+
+  // 4-4-4 Box Breathing cycle timer
+  useEffect(() => {
+    let interval = null;
+    if (showSomatic) {
+      interval = setInterval(() => {
+        setBreathCount((prev) => {
+          if (prev <= 1) {
+            setBreathPhase((p) => {
+              if (p === 'Inhale') return 'Hold';
+              if (p === 'Hold') return 'Exhale';
+              return 'Inhale';
+            });
+            return 4;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [showSomatic]);
 
   const handleEveningSubmit = (e) => {
     e.preventDefault();
@@ -98,32 +121,48 @@ export default function DailyCheckin({ onLaunchBodyDouble, activeTask }) {
         </div>
       )}
 
-      {/* 4. Optional Somatic Bio-Reset (Quiet Accordion Row) */}
+      {/* 4. Somatic Bio-Reset (Interactive 4-4-4 Box Breathing) */}
       <div className="space-y-3 pt-4">
         <div className="text-[11px] font-mono text-slate-400 uppercase tracking-wide px-1">
-          Midday & Evening Care
+          Midday Somatic Care & Evening Closure
         </div>
 
-        <div className="bg-white rounded-2xl p-4 sm:p-5 flex items-center justify-between shadow-[0_4px_20px_-2px_rgba(15,61,35,0.03)]">
-          <div>
-            <p className="text-xs font-bold text-forest-950">90-Second Somatic Reset</p>
-            <p className="text-[11px] text-slate-400 font-sans">Hydrate & 4-4-4 box breathing</p>
+        <div className="bg-white rounded-2xl p-5 shadow-[0_4px_20px_-2px_rgba(15,61,35,0.03)] space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-forest-950">90-Second Somatic Reset</p>
+              <p className="text-[11px] text-slate-400 font-sans">4-4-4 box breathing to restore dopamine reserves</p>
+            </div>
+            <button
+              onClick={() => setShowSomatic(!showSomatic)}
+              className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-[#F8FAF8] hover:bg-slate-100 text-forest-950 active:scale-95 transition duration-100"
+            >
+              {showSomatic ? 'Close' : 'Start 90s Reset'}
+            </button>
           </div>
-          <button
-            onClick={() => setSomaticDone(!somaticDone)}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold active:scale-95 transition duration-100 ${
-              somaticDone ? 'bg-emerald-100 text-emerald-800' : 'bg-[#F8FAF8] hover:bg-slate-100 text-forest-950'
-            }`}
-          >
-            {somaticDone ? '✓ Completed' : 'Reset (90s)'}
-          </button>
+
+          {showSomatic && (
+            <div className="p-4 bg-[#F8FAF8] rounded-xl text-center space-y-3 transition-all duration-200">
+              <div className="space-y-1">
+                <span className="text-xs font-mono font-bold text-emerald-800 uppercase tracking-wider">
+                  {breathPhase}
+                </span>
+                <div className="text-3xl font-mono font-bold text-forest-950">
+                  {breathCount}s
+                </div>
+              </div>
+              <p className="text-[11px] text-slate-500 font-sans max-w-xs mx-auto">
+                Drink a sip of water, look 20 feet away, and follow the 4-second box breathing cycle.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Evening Closure Form */}
         <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-[0_4px_20px_-2px_rgba(15,61,35,0.03)] space-y-3">
           <div>
             <p className="text-xs font-bold text-forest-950">Evening Closure</p>
-            <p className="text-[11px] text-slate-400 font-sans">Acknowledge 1 win before unplugging.</p>
+            <p className="text-[11px] text-slate-400 font-sans">Acknowledge 1 micro-win before unplugging.</p>
           </div>
 
           {eveningLogged ? (
