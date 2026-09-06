@@ -230,7 +230,119 @@ export default function FocusPlanView({
     <div className="space-y-8 max-w-xl mx-auto">
       
       {/* ========================================================================= */}
-      {/* STEP 1 (TOP): ACTIVE FOCUS ROOM & STOPWATCH (Execution Hero)              */}
+      {/* STEP 1 (TOP): RESOURCE & GOAL SLICER INGESTION BAR                        */}
+      {/* ========================================================================= */}
+      <section className="text-left">
+        <form 
+          onSubmit={handleGenerate} 
+          className="bg-white rounded-2xl sm:rounded-3xl p-2 sm:p-2.5 shadow-[0_8px_24px_-4px_rgba(15,61,35,0.04)] border border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 transition-all focus-within:border-emerald-300"
+        >
+          {/* Search / URL / Topic Input */}
+          <div className="flex-1 flex items-center gap-2 px-3 py-1.5 bg-[#F8FAF8] rounded-xl sm:rounded-2xl border border-slate-200/50">
+            <Search className="w-4 h-4 text-slate-400 shrink-0" />
+            <input
+              type="text"
+              value={goalInput}
+              onChange={(e) => setGoalInput(e.target.value)}
+              placeholder="Paste article URL, course link, or topic..."
+              className="w-full bg-transparent text-xs sm:text-sm font-medium text-forest-950 focus:outline-none placeholder:text-slate-400"
+            />
+            
+            {/* File Upload Trigger */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              accept=".md,.txt,.pdf,.markdown"
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="p-1 px-2 rounded-lg hover:bg-slate-200/60 text-slate-500 hover:text-emerald-900 transition text-[11px] flex items-center gap-1 font-medium shrink-0"
+              title="Upload .md / .pdf / .txt file"
+            >
+              <Upload className="w-3.5 h-3.5 text-emerald-700" />
+              <span className="hidden sm:inline text-xs">Doc</span>
+            </button>
+
+            {goalInput && (
+              <button
+                type="button"
+                onClick={() => {
+                  setGoalInput('');
+                  setUploadedFileName(null);
+                }}
+                className="text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-200/60 shrink-0"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Integrated Manual Timeline & Daily Cap Numeric Inputs + Slice CTA */}
+          <div className="flex items-center gap-1.5 justify-between sm:justify-end shrink-0">
+            
+            {/* Manual Timeline Input (Weeks) */}
+            <div className="flex items-center gap-0.5 bg-[#F8FAF8] px-2 py-1.5 rounded-xl border border-slate-200/60 shrink-0" title="Timeline duration in weeks">
+              <input
+                type="number"
+                min="1"
+                max="16"
+                value={targetWeeks}
+                onChange={(e) => setTargetWeeks(Math.max(1, Math.min(16, Number(e.target.value) || 1)))}
+                className="w-7 text-center font-mono font-bold text-xs text-forest-950 bg-transparent focus:outline-none"
+              />
+              <span className="text-[10px] font-mono text-slate-400 select-none">wks</span>
+            </div>
+
+            {/* Manual Daily Cap Input (Mins) */}
+            <div className="flex items-center gap-0.5 bg-[#F8FAF8] px-2 py-1.5 rounded-xl border border-slate-200/60 shrink-0" title="Daily focus cap in minutes">
+              <input
+                type="number"
+                min="5"
+                max="180"
+                step="5"
+                value={dailyMinutes}
+                onChange={(e) => setDailyMinutes(Math.max(5, Math.min(180, Number(e.target.value) || 15)))}
+                className="w-8 text-center font-mono font-bold text-xs text-forest-950 bg-transparent focus:outline-none"
+              />
+              <span className="text-[10px] font-mono text-slate-400 select-none">m/d</span>
+            </div>
+
+            {/* Slice Goal CTA */}
+            <button
+              type="submit"
+              disabled={isGenerating}
+              className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs active:scale-95 transition duration-100 disabled:opacity-50 flex items-center gap-1.5 shrink-0"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>{isGenerating ? 'Slicing...' : 'Slice Goal 🛡️'}</span>
+            </button>
+          </div>
+
+        </form>
+
+        {/* Uploaded File Notification Pill */}
+        {uploadedFileName && (
+          <div className="mt-2 px-3 py-1.5 bg-emerald-50 rounded-xl text-xs font-mono text-emerald-900 flex items-center justify-between border border-emerald-200/50 shadow-xs">
+            <span className="flex items-center gap-1.5 truncate">
+              <FileText className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+              <span className="truncate">Resource: {uploadedFileName}</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => setUploadedFileName(null)}
+              className="text-emerald-700 underline text-[11px] ml-2 shrink-0 hover:text-emerald-900"
+            >
+              Remove
+            </button>
+          </div>
+        )}
+      </section>
+
+      {/* ========================================================================= */}
+      {/* STEP 2 (CENTER): ACTIVE FOCUS ROOM & STOPWATCH (Execution Hero)           */}
       {/* ========================================================================= */}
       <section ref={focusRoomRef} className="space-y-6 text-center pt-1">
         
@@ -574,118 +686,6 @@ export default function FocusPlanView({
           </div>
         )}
 
-      </section>
-
-      {/* ========================================================================= */}
-      {/* STEP 2 (BELOW TIME BLOCK): RESOURCE & GOAL SLICER INGESTION BAR           */}
-      {/* ========================================================================= */}
-      <section className="text-left pt-2">
-        <form 
-          onSubmit={handleGenerate} 
-          className="bg-white rounded-2xl sm:rounded-3xl p-2 sm:p-2.5 shadow-[0_8px_24px_-4px_rgba(15,61,35,0.04)] border border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 transition-all focus-within:border-emerald-300"
-        >
-          {/* Search / URL / Topic Input */}
-          <div className="flex-1 flex items-center gap-2 px-3 py-1.5 bg-[#F8FAF8] rounded-xl sm:rounded-2xl border border-slate-200/50">
-            <Search className="w-4 h-4 text-slate-400 shrink-0" />
-            <input
-              type="text"
-              value={goalInput}
-              onChange={(e) => setGoalInput(e.target.value)}
-              placeholder="Paste article URL, course link, or topic..."
-              className="w-full bg-transparent text-xs sm:text-sm font-medium text-forest-950 focus:outline-none placeholder:text-slate-400"
-            />
-            
-            {/* File Upload Trigger */}
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileUpload}
-              accept=".md,.txt,.pdf,.markdown"
-              className="hidden"
-            />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="p-1 px-2 rounded-lg hover:bg-slate-200/60 text-slate-500 hover:text-emerald-900 transition text-[11px] flex items-center gap-1 font-medium shrink-0"
-              title="Upload .md / .pdf / .txt file"
-            >
-              <Upload className="w-3.5 h-3.5 text-emerald-700" />
-              <span className="hidden sm:inline text-xs">Doc</span>
-            </button>
-
-            {goalInput && (
-              <button
-                type="button"
-                onClick={() => {
-                  setGoalInput('');
-                  setUploadedFileName(null);
-                }}
-                className="text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-200/60 shrink-0"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-
-          {/* Integrated Manual Timeline & Daily Cap Numeric Inputs + Slice CTA */}
-          <div className="flex items-center gap-1.5 justify-between sm:justify-end shrink-0">
-            
-            {/* Manual Timeline Input (Weeks) */}
-            <div className="flex items-center gap-0.5 bg-[#F8FAF8] px-2 py-1.5 rounded-xl border border-slate-200/60 shrink-0" title="Timeline duration in weeks">
-              <input
-                type="number"
-                min="1"
-                max="16"
-                value={targetWeeks}
-                onChange={(e) => setTargetWeeks(Math.max(1, Math.min(16, Number(e.target.value) || 1)))}
-                className="w-7 text-center font-mono font-bold text-xs text-forest-950 bg-transparent focus:outline-none"
-              />
-              <span className="text-[10px] font-mono text-slate-400 select-none">wks</span>
-            </div>
-
-            {/* Manual Daily Cap Input (Mins) */}
-            <div className="flex items-center gap-0.5 bg-[#F8FAF8] px-2 py-1.5 rounded-xl border border-slate-200/60 shrink-0" title="Daily focus cap in minutes">
-              <input
-                type="number"
-                min="5"
-                max="180"
-                step="5"
-                value={dailyMinutes}
-                onChange={(e) => setDailyMinutes(Math.max(5, Math.min(180, Number(e.target.value) || 15)))}
-                className="w-8 text-center font-mono font-bold text-xs text-forest-950 bg-transparent focus:outline-none"
-              />
-              <span className="text-[10px] font-mono text-slate-400 select-none">m/d</span>
-            </div>
-
-            {/* Slice Goal CTA */}
-            <button
-              type="submit"
-              disabled={isGenerating}
-              className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs active:scale-95 transition duration-100 disabled:opacity-50 flex items-center gap-1.5 shrink-0"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>{isGenerating ? 'Slicing...' : 'Slice Goal 🛡️'}</span>
-            </button>
-          </div>
-
-        </form>
-
-        {/* Uploaded File Notification Pill */}
-        {uploadedFileName && (
-          <div className="mt-2 px-3 py-1.5 bg-emerald-50 rounded-xl text-xs font-mono text-emerald-900 flex items-center justify-between border border-emerald-200/50 shadow-xs">
-            <span className="flex items-center gap-1.5 truncate">
-              <FileText className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-              <span className="truncate">Resource: {uploadedFileName}</span>
-            </span>
-            <button
-              type="button"
-              onClick={() => setUploadedFileName(null)}
-              className="text-emerald-700 underline text-[11px] ml-2 shrink-0 hover:text-emerald-900"
-            >
-              Remove
-            </button>
-          </div>
-        )}
       </section>
 
       {/* ========================================================================= */}
