@@ -63,7 +63,7 @@ export default function RecoveryModal({ isOpen, onClose, bufferDaysRemaining = 2
         <button
           onClick={handleClaim}
           disabled={hasClaimed}
-          className="w-full py-3 bg-forest-950 hover:bg-forest-900 text-white font-semibold text-xs rounded-xl shadow-sm active:scale-95 transition duration-100"
+          className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-sm active:scale-95 transition duration-100"
         >
           {hasClaimed ? '✓ Momentum Restored' : 'Resume Flow →'}
         </button>

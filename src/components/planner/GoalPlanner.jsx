@@ -46,7 +46,7 @@ export default function GoalPlanner({ roadmap, onGenerateRoadmap, onSelectTaskFo
           <button
             type="submit"
             disabled={isGenerating}
-            className="px-5 py-2.5 rounded-xl bg-forest-950 hover:bg-forest-900 text-white text-xs font-semibold shadow-sm active:scale-95 transition duration-100 disabled:opacity-50"
+            className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm active:scale-95 transition duration-100 disabled:opacity-50"
           >
             {isGenerating ? 'Slicing Plan...' : 'Slice Goal'}
           </button>
@@ -83,7 +83,7 @@ export default function GoalPlanner({ roadmap, onGenerateRoadmap, onSelectTaskFo
               {idx === 0 ? (
                 <button
                   onClick={() => onSelectTaskForFocus(task)}
-                  className="px-3.5 py-1.5 rounded-xl bg-forest-950 text-white text-xs font-semibold active:scale-95 transition duration-100 shadow-sm shrink-0"
+                  className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold active:scale-95 transition duration-100 shadow-sm shrink-0"
                 >
                   Start →
                 </button>

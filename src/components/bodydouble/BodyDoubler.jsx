@@ -121,7 +121,7 @@ export default function BodyDoubler({ activeTask, onCompleteSession }) {
                 className="bg-white rounded-2xl p-5 flex items-center justify-between gap-4 shadow-[0_12px_32px_-4px_rgba(15,61,35,0.06),0_2px_6px_0_rgba(0,0,0,0.02)] transition-all duration-200"
               >
                 <div className="flex items-center gap-3.5">
-                  <span className="w-6 h-6 rounded-full bg-forest-950 text-white flex items-center justify-center font-mono text-xs font-bold shrink-0">
+                  <span className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center font-mono text-xs font-bold shrink-0">
                     {idx + 1}
                   </span>
                   <div>
@@ -131,7 +131,7 @@ export default function BodyDoubler({ activeTask, onCompleteSession }) {
                 </div>
                 <button
                   onClick={() => handleStepComplete(idx)}
-                  className="px-4 py-2 rounded-xl bg-forest-950 text-white text-xs font-semibold shadow-sm active:scale-95 transition duration-100 shrink-0"
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm active:scale-95 transition duration-100 shrink-0"
                 >
                   Done
                 </button>
@@ -163,7 +163,7 @@ export default function BodyDoubler({ activeTask, onCompleteSession }) {
           className={`px-5 py-2.5 rounded-full text-xs font-semibold shadow-sm active:scale-95 transition-all duration-150 ${
             isRunning
               ? 'bg-amber-100 text-amber-900 hover:bg-amber-200'
-              : 'bg-forest-950 text-white hover:bg-forest-900'
+              : 'bg-emerald-600 hover:bg-emerald-700 text-white'
           }`}
         >
           {isRunning ? 'Pause Sprint' : 'Start Sprint'}

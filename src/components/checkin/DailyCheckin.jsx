@@ -91,7 +91,7 @@ export default function DailyCheckin({ onLaunchBodyDouble, activeTask }) {
 
           <button
             onClick={() => onLaunchBodyDouble(activeTask)}
-            className="px-4 py-2 rounded-xl bg-forest-950 text-white text-xs font-semibold shadow-sm active:scale-95 transition duration-100 shrink-0"
+            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm active:scale-95 transition duration-100 shrink-0"
           >
             Start Focus →
           </button>
@@ -141,7 +141,7 @@ export default function DailyCheckin({ onLaunchBodyDouble, activeTask }) {
               />
               <button
                 type="submit"
-                className="px-4 py-2.5 rounded-xl bg-forest-950 text-white text-xs font-semibold active:scale-95 transition duration-100 shrink-0"
+                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold active:scale-95 transition duration-100 shrink-0"
               >
                 Close Day
               </button>
