@@ -17,10 +17,7 @@ import {
   ChevronUp, 
   FileText, 
   Upload, 
-  Bell, 
-  BellOff,
-  Search,
-  CheckCircle
+  Search
 } from 'lucide-react';
 import { audioService } from '../../services/audioService';
 import { readLocalFile } from '../../services/contentFetcher';
@@ -34,14 +31,14 @@ export default function FocusPlanView({
   isGenerating,
   onCompleteSession,
   onOpenCheckin,
-  onAbsorbBuffer
+  onAbsorbBuffer,
+  isAudioMuted = false
 }) {
   // Focus Room State
   const [timerDuration, setTimerDuration] = useState(25 * 60);
   const [secondsLeft, setSecondsLeft] = useState(25 * 60);
   const [isRunning, setIsRunning] = useState(false);
-  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
-  const [isTickingActive, setIsTickingActive] = useState(true);
+  const [isBrownNoiseOn, setIsBrownNoiseOn] = useState(false);
   const [activeStepIndex, setActiveStepIndex] = useState(0);
   const [expandedStepIndex, setExpandedStepIndex] = useState(0);
   const [showStuckModal, setShowStuckModal] = useState(false);
@@ -64,14 +61,14 @@ export default function FocusPlanView({
     setIsSessionCompleted(false);
   }, [activeTask?.id]);
 
-  // Stopwatch Timer loop with mechanical "tik-tik" audio synthesis
+  // Stopwatch Timer loop with mechanical "tik-tik" sound (Default ON unless muted)
   useEffect(() => {
     let interval = null;
     if (isRunning && secondsLeft > 0) {
       interval = setInterval(() => {
         setSecondsLeft((prev) => {
           if (prev <= 1) return 0;
-          if (isTickingActive) {
+          if (!isAudioMuted) {
             audioService.playTick(prev % 2 === 1, 0.08);
           }
           return prev - 1;
@@ -81,7 +78,7 @@ export default function FocusPlanView({
       handleCompleteSession(true);
     }
     return () => clearInterval(interval);
-  }, [isRunning, secondsLeft, isTickingActive]);
+  }, [isRunning, secondsLeft, isAudioMuted]);
 
   const handleSelectBurstDuration = (minutes) => {
     const totalSecs = minutes * 60;
@@ -91,19 +88,13 @@ export default function FocusPlanView({
   };
 
   const toggleBrownNoise = () => {
-    if (isAudioPlaying) {
+    if (isBrownNoiseOn) {
       audioService.stop();
-      setIsAudioPlaying(false);
+      setIsBrownNoiseOn(false);
     } else {
       audioService.start('brown', 0.18);
-      setIsAudioPlaying(true);
+      setIsBrownNoiseOn(true);
     }
-  };
-
-  const toggleTickingSound = () => {
-    const nextState = !isTickingActive;
-    setIsTickingActive(nextState);
-    audioService.setTickingEnabled(nextState);
   };
 
   const handleStepComplete = (index) => {
@@ -128,7 +119,7 @@ export default function FocusPlanView({
   const handleCompleteSession = (timerExpired = false) => {
     setIsRunning(false);
     audioService.stop();
-    setIsAudioPlaying(false);
+    setIsBrownNoiseOn(false);
     setIsSessionCompleted(true);
     confetti({
       particleCount: 85,
@@ -180,12 +171,6 @@ export default function FocusPlanView({
     }
   };
 
-  const handlePresetSelect = (presetText) => {
-    setUploadedFileName(null);
-    setGoalInput(presetText);
-    onGenerateRoadmap({ goalText: presetText, targetWeeks, dailyMinutes });
-  };
-
   const formatTime = (secs) => {
     const m = Math.floor(secs / 60);
     const s = secs % 60;
@@ -216,158 +201,113 @@ export default function FocusPlanView({
     <div className="space-y-10 max-w-xl mx-auto">
       
       {/* ========================================================================= */}
-      {/* STEP 1 (TOP): SOURCE INGESTION & TOPIC/DOC SLICER (Clear Natural Flow)     */}
+      {/* STEP 1 (TOP): INTUITIVE MINIMALIST UNIFIED SEARCH & SLICER BAR             */}
       {/* ========================================================================= */}
-      <section className="space-y-3.5 text-left bg-white rounded-3xl p-5 sm:p-6 shadow-[0_10px_30px_-5px_rgba(15,61,35,0.04)] border border-slate-100">
-        
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
-          <div>
-            <h2 className="font-display font-bold text-base sm:text-lg text-forest-950 tracking-tight flex items-center gap-2">
-              <Search className="w-4 h-4 text-emerald-700" />
-              <span>What would you like to master?</span>
-            </h2>
-            <p className="text-xs text-slate-500 font-sans">
-              Paste article/course link, upload <strong>.md / .pdf</strong>, or search any topic.
-            </p>
-          </div>
-
-          <span className="text-[11px] font-mono text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full font-semibold shrink-0 self-start sm:self-auto">
-            {roadmap?.bufferDaysCount || targetWeeks * 2} Buffer Days 🛡️
-          </span>
-        </div>
-
-        {/* Input Bar with Embedded File Upload Button */}
-        <form onSubmit={handleGenerate} className="space-y-3 pt-1">
-          <div className="relative">
+      <section className="text-left">
+        <form onSubmit={handleGenerate} className="bg-white rounded-3xl p-2.5 sm:p-3 shadow-[0_10px_30px_-5px_rgba(15,61,35,0.04)] border border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 transition-all">
+          
+          {/* Search / URL / Topic Input */}
+          <div className="flex-1 flex items-center gap-2 px-3 py-1.5 bg-[#F8FAF8] rounded-2xl border border-slate-200/50">
+            <Search className="w-4 h-4 text-slate-400 shrink-0" />
             <input
               type="text"
               value={goalInput}
               onChange={(e) => setGoalInput(e.target.value)}
-              placeholder="Paste article URL, Udemy link, or topic (e.g. React 19, DP)..."
-              className="w-full pl-4 pr-24 py-3.5 rounded-2xl bg-[#F8FAF8] text-xs sm:text-sm font-medium text-forest-950 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition placeholder:text-slate-400 border border-slate-200/60"
+              placeholder="Paste article URL, course link, or topic..."
+              className="w-full bg-transparent text-xs sm:text-sm font-medium text-forest-950 focus:outline-none placeholder:text-slate-400"
             />
+            
+            {/* File Upload Trigger */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              accept=".md,.txt,.pdf,.markdown"
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="p-1 px-2 rounded-lg hover:bg-slate-200/60 text-slate-500 hover:text-emerald-900 transition text-[11px] flex items-center gap-1 font-medium shrink-0"
+              title="Upload .md / .pdf / .txt file"
+            >
+              <Upload className="w-3.5 h-3.5 text-emerald-700" />
+              <span className="hidden sm:inline text-xs">Doc</span>
+            </button>
 
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-              {/* File Upload Button (.md, .pdf, .txt) */}
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileUpload}
-                accept=".md,.txt,.pdf,.markdown"
-                className="hidden"
-              />
+            {goalInput && (
               <button
                 type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="p-1.5 px-2.5 rounded-xl bg-white hover:bg-emerald-50 text-slate-600 hover:text-emerald-900 transition text-[11px] flex items-center gap-1 font-medium shadow-xs border border-slate-200/60"
-                title="Upload Markdown or PDF document"
+                onClick={() => setGoalInput('')}
+                className="text-xs text-slate-400 hover:text-slate-600 w-4 h-4 flex items-center justify-center rounded-full bg-slate-200/70 shrink-0"
               >
-                <Upload className="w-3.5 h-3.5 text-emerald-700" />
-                <span className="hidden sm:inline">Upload</span>
+                ✕
               </button>
-
-              {goalInput && (
-                <button
-                  type="button"
-                  onClick={() => setGoalInput('')}
-                  className="text-xs text-slate-400 hover:text-slate-600 w-5 h-5 flex items-center justify-center rounded-full bg-slate-200/80"
-                  title="Clear"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
+            )}
           </div>
 
-          {uploadedFileName && (
-            <div className="p-2.5 bg-emerald-50 rounded-xl text-xs font-mono text-emerald-900 flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5 text-emerald-700" />
-                <span>Uploaded: {uploadedFileName}</span>
-              </span>
-              <button
-                type="button"
-                onClick={() => setUploadedFileName(null)}
-                className="text-emerald-700 underline text-[11px]"
-              >
-                Remove
-              </button>
-            </div>
-          )}
-
-          {/* 1-Click Curated Suggestion Chips */}
-          <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500">
-            <span className="font-mono text-slate-400 mr-0.5">Quick ideas:</span>
-            <button
-              type="button"
-              onClick={() => handlePresetSelect('Master Dynamic Programming & Recursion')}
-              className="px-2.5 py-1 rounded-full bg-[#F8FAF8] hover:bg-emerald-50 text-forest-900 shadow-xs transition active:scale-95 border border-slate-200/50"
+          {/* Intuitively Integrated Timeline & Cap Selectors + CTA in Same Row */}
+          <div className="flex items-center gap-1.5 justify-between sm:justify-end shrink-0">
+            
+            {/* Timeline Selector Pill */}
+            <select
+              value={targetWeeks}
+              onChange={(e) => setTargetWeeks(Number(e.target.value))}
+              className="bg-[#F8FAF8] text-forest-950 text-xs font-semibold rounded-xl px-2 py-2 border border-slate-200/60 focus:outline-none cursor-pointer"
+              title="Timeline Duration"
             >
-              🎯 Dynamic Programming
-            </button>
-            <button
-              type="button"
-              onClick={() => handlePresetSelect('https://www.udemy.com/course/the-complete-react-guide')}
-              className="px-2.5 py-1 rounded-full bg-[#F8FAF8] hover:bg-emerald-50 text-forest-900 shadow-xs transition active:scale-95 border border-slate-200/50"
+              <option value={2}>2 Weeks</option>
+              <option value={3}>3 Weeks</option>
+              <option value={4}>4 Weeks</option>
+            </select>
+
+            {/* Daily Cap Selector Pill */}
+            <select
+              value={dailyMinutes}
+              onChange={(e) => setDailyMinutes(Number(e.target.value))}
+              className="bg-[#F8FAF8] text-forest-950 text-xs font-semibold rounded-xl px-2 py-2 border border-slate-200/60 focus:outline-none cursor-pointer"
+              title="Daily Focus Cap"
             >
-              🎓 Udemy React Link
-            </button>
-            <button
-              type="button"
-              onClick={() => handlePresetSelect('https://medium.com/@engineering/system-design-primer')}
-              className="px-2.5 py-1 rounded-full bg-[#F8FAF8] hover:bg-emerald-50 text-forest-900 shadow-xs transition active:scale-95 border border-slate-200/50"
-            >
-              📝 Medium System Design
-            </button>
-          </div>
+              <option value={30}>30m/day</option>
+              <option value={45}>45m/day</option>
+              <option value={60}>60m/day</option>
+            </select>
 
-          {/* Pacing Configuration Controls & Primary Slicing Button */}
-          <div className="flex flex-wrap items-center justify-between gap-3 text-xs pt-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <label className="text-slate-500 font-sans flex items-center gap-1">
-                <span>Timeline:</span>
-                <select
-                  value={targetWeeks}
-                  onChange={(e) => setTargetWeeks(Number(e.target.value))}
-                  className="bg-[#F8FAF8] rounded-lg px-2 py-1 font-semibold text-forest-950 border border-slate-200 focus:outline-none"
-                >
-                  <option value={2}>2 Weeks</option>
-                  <option value={3}>3 Weeks</option>
-                  <option value={4}>4 Weeks</option>
-                </select>
-              </label>
-
-              <label className="text-slate-500 font-sans flex items-center gap-1">
-                <span>Cap:</span>
-                <select
-                  value={dailyMinutes}
-                  onChange={(e) => setDailyMinutes(Number(e.target.value))}
-                  className="bg-[#F8FAF8] rounded-lg px-2 py-1 font-semibold text-forest-950 border border-slate-200 focus:outline-none"
-                >
-                  <option value={30}>30 mins / day</option>
-                  <option value={45}>45 mins / day</option>
-                  <option value={60}>60 mins / day</option>
-                </select>
-              </label>
-            </div>
-
+            {/* Slice Goal CTA */}
             <button
               type="submit"
               disabled={isGenerating}
-              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm active:scale-95 transition duration-100 disabled:opacity-50 flex items-center justify-center gap-1.5"
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm active:scale-95 transition duration-100 disabled:opacity-50 flex items-center gap-1.5 shrink-0"
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>{isGenerating ? 'Deconstructing Reading...' : 'Slice Goal with Buffer Days 🛡️'}</span>
+              <span>{isGenerating ? 'Slicing...' : 'Slice Goal 🛡️'}</span>
             </button>
           </div>
+
         </form>
 
+        {/* Uploaded File Notification Pill */}
+        {uploadedFileName && (
+          <div className="mt-2 px-3 py-1.5 bg-emerald-50 rounded-xl text-xs font-mono text-emerald-900 flex items-center justify-between border border-emerald-200/50">
+            <span className="flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5 text-emerald-700" />
+              <span>Loaded: {uploadedFileName}</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => setUploadedFileName(null)}
+              className="text-emerald-700 underline text-[11px]"
+            >
+              Remove
+            </button>
+          </div>
+        )}
       </section>
 
       {/* ========================================================================= */}
       {/* STEP 2 (CENTER): ACTIVE FOCUS ROOM & BODY DOUBLER (Execution Hero)        */}
       {/* ========================================================================= */}
-      <section ref={focusRoomRef} className="space-y-7 text-center pt-2">
+      <section ref={focusRoomRef} className="space-y-7 text-center pt-1">
         
         {/* Companion Mascot & Ambient Dialogue */}
         <div className="flex flex-col items-center justify-center space-y-2.5">
@@ -561,7 +501,7 @@ export default function FocusPlanView({
 
         </div>
 
-        {/* Tactile Control Bar: Start Sprint, Done, Tik-Tik, Brown Noise, Stuck */}
+        {/* Tactile Control Bar: Start Sprint, Done, Brown Noise, Stuck */}
         <div className="flex flex-wrap items-center justify-center gap-2.5 pt-1">
           
           {/* Start / Pause Sprint */}
@@ -587,39 +527,21 @@ export default function FocusPlanView({
             <span>Done</span>
           </button>
 
-          {/* Tik-Tik Stopwatch Sound Toggle */}
-          <button
-            onClick={toggleTickingSound}
-            className={`px-3.5 py-2.5 rounded-full text-xs font-medium flex items-center gap-1.5 shadow-sm active:scale-95 transition-all duration-150 ${
-              isTickingActive
-                ? 'bg-emerald-100 text-emerald-900 font-semibold'
-                : 'bg-white hover:bg-slate-50 text-slate-500'
-            }`}
-            title="Toggle soothing mechanical clock tik-tik sound"
-          >
-            {isTickingActive ? (
-              <Bell className="w-3.5 h-3.5 text-emerald-700 animate-pulse" />
-            ) : (
-              <BellOff className="w-3.5 h-3.5 text-slate-400" />
-            )}
-            <span>{isTickingActive ? 'Tik-Tik (On)' : 'Tik-Tik'}</span>
-          </button>
-
           {/* Brown Noise Generator */}
           <button
             onClick={toggleBrownNoise}
             className={`px-3.5 py-2.5 rounded-full text-xs font-medium flex items-center gap-1.5 shadow-sm active:scale-95 transition-all duration-150 ${
-              isAudioPlaying
+              isBrownNoiseOn
                 ? 'bg-emerald-100 text-emerald-900 font-semibold'
                 : 'bg-white hover:bg-slate-50 text-forest-900'
             }`}
           >
-            {isAudioPlaying ? (
+            {isBrownNoiseOn ? (
               <Volume2 className="w-3.5 h-3.5 text-emerald-700 animate-pulse" />
             ) : (
               <VolumeX className="w-3.5 h-3.5 text-slate-400" />
             )}
-            <span>{isAudioPlaying ? 'Brown Noise (On)' : 'Brown Noise'}</span>
+            <span>{isBrownNoiseOn ? 'Brown Noise (On)' : 'Brown Noise'}</span>
           </button>
 
           {/* I'm Feeling Stuck Helper */}

@@ -3,11 +3,9 @@ import Navbar from './components/layout/Navbar';
 import FocusPlanView from './components/unified/FocusPlanView';
 import DailyCheckin from './components/checkin/DailyCheckin';
 import RecoveryModal from './components/recovery/RecoveryModal';
-// Note: RecoveryView and MomentumDashboard are parked/commented out for unified single-focus MVP
-// import RecoveryView from './components/recovery/RecoveryView';
-// import MomentumDashboard from './components/dashboard/MomentumDashboard';
 import { generateRoadmap } from './services/aiEngine';
 import { loadStoredState, saveStoredState } from './services/storageService';
+import { audioService } from './services/audioService';
 
 export default function App() {
   const [roadmap, setRoadmap] = useState(null);
@@ -15,6 +13,7 @@ export default function App() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isCheckinOpen, setIsCheckinOpen] = useState(false);
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
+  const [isAudioOn, setIsAudioOn] = useState(true);
   
   const [stats, setStats] = useState({
     bounceBackScore: 100,
@@ -47,6 +46,15 @@ export default function App() {
       saveStoredState({ roadmap, stats });
     }
   }, [roadmap, stats]);
+
+  const toggleGlobalAudio = () => {
+    const next = !isAudioOn;
+    setIsAudioOn(next);
+    audioService.setTickingEnabled(next);
+    if (!next) {
+      audioService.stop();
+    }
+  };
 
   const handleGenerateRoadmap = async ({ goalText, targetWeeks, dailyMinutes, fileData }) => {
     setIsGenerating(true);
@@ -99,11 +107,12 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#F8FAF8] text-[#0F3D23] flex flex-col font-sans antialiased selection:bg-emerald-100">
       
-      {/* Top Dock Nav with Check-in Quick CTA & Buffer Status */}
+      {/* Top Dock Nav with Audio Toggle & Solid Green Check-in CTA */}
       <Navbar
         onOpenCheckin={() => setIsCheckinOpen(true)}
         bufferCount={stats.buffersRemaining}
-        activeGoalTitle={roadmap?.title}
+        isAudioOn={isAudioOn}
+        onToggleAudio={toggleGlobalAudio}
       />
 
       {/* Main Unified Single-Focus Workspace (Focus + Plan Merged) */}
@@ -117,6 +126,7 @@ export default function App() {
           onCompleteSession={handleCompleteSession}
           onOpenCheckin={() => setIsCheckinOpen(true)}
           onAbsorbBuffer={handleAbsorbBuffer}
+          isAudioMuted={!isAudioOn}
         />
       </main>
 
