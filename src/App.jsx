@@ -53,7 +53,7 @@ export default function App() {
     try {
       const result = await generateRoadmap({ goalText, targetWeeks, dailyMinutes });
       setRoadmap(result);
-      const firstTask = result.milestones?.[0]?.tasks?.[0];
+      const firstTask = result.milestones?.[0]?.tasks?.find(t => t.type !== 'BUFFER') || result.milestones?.[0]?.tasks?.[0];
       setActiveTask(firstTask);
       setStats((prev) => ({
         ...prev,
@@ -77,15 +77,13 @@ export default function App() {
   const handleCompleteSession = (minutesSpent) => {
     setStats((prev) => ({
       ...prev,
-      focusMinutes: prev.focusMinutes + minutesSpent
+      focusMinutes: prev.focusMinutes + minutesSpent,
+      completedTasks: prev.completedTasks + 1,
+      bounceBackScore: 100
     }));
   };
 
-  const handleSimulateMissedDay = () => {
-    setShowRecoveryModal(true);
-  };
-
-  const handleClaimWin = () => {
+  const handleAbsorbBuffer = () => {
     setStats((prev) => ({
       ...prev,
       buffersRemaining: Math.max(0, prev.buffersRemaining - 1),
@@ -93,23 +91,30 @@ export default function App() {
     }));
   };
 
+  const handleClaimWin = () => {
+    setStats((prev) => ({
+      ...prev,
+      bounceBackScore: 100
+    }));
+  };
+
   return (
     <div className="min-h-screen bg-[#F8FAF8] text-[#0F3D23] flex flex-col font-sans antialiased selection:bg-emerald-100">
       
-      {/* Floating Apple-Style Dock Nav */}
+      {/* Floating Dock Nav with Prominent Check-in Button */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         bufferCount={stats.buffersRemaining}
-        onSimulateMissedDay={handleSimulateMissedDay}
       />
 
       {/* Main Single-Focus Content Workspace */}
-      <main className="flex-1 max-w-2xl w-full mx-auto px-4 sm:px-6 py-6 pb-24">
+      <main className="flex-1 max-w-2xl w-full mx-auto px-4 sm:px-6 py-4 sm:py-6 pb-24">
         {activeTab === 'bodydouble' && (
           <BodyDoubler
             activeTask={activeTask}
             onCompleteSession={handleCompleteSession}
+            onNavigateTab={setActiveTab}
           />
         )}
 
@@ -119,6 +124,7 @@ export default function App() {
             onGenerateRoadmap={handleGenerateRoadmap}
             onSelectTaskForFocus={handleSelectTaskForFocus}
             isGenerating={isGenerating}
+            onNavigateTab={setActiveTab}
           />
         )}
 
@@ -126,6 +132,7 @@ export default function App() {
           <DailyCheckin
             activeTask={activeTask}
             onLaunchBodyDouble={handleLaunchBodyDouble}
+            onNavigateTab={setActiveTab}
           />
         )}
 
@@ -134,7 +141,9 @@ export default function App() {
             bufferDaysRemaining={stats.buffersRemaining}
             totalBufferDays={roadmap?.bufferDaysCount || 6}
             onClaimWin={handleClaimWin}
+            onAbsorbBuffer={handleAbsorbBuffer}
             onResumeFocus={() => setActiveTab('bodydouble')}
+            onNavigateTab={setActiveTab}
           />
         )}
 
@@ -142,6 +151,7 @@ export default function App() {
           <MomentumDashboard
             roadmap={roadmap}
             stats={stats}
+            onNavigateTab={setActiveTab}
           />
         )}
       </main>
