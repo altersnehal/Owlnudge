@@ -55,10 +55,31 @@ function renderFormattedReading(readingText) {
     const line = lines[i];
     const trimmed = line.trim();
 
+    // 1. YouTube Video Embed Tag: [youtube:VIDEO_ID:START_SECONDS] or [youtube:VIDEO_ID]
+    if (trimmed.startsWith('[youtube:') && trimmed.endsWith(']')) {
+      const parts = trimmed.slice(9, -1).split(':');
+      const videoId = parts[0];
+      const startSeconds = parseInt(parts[1], 10) || 0;
+      if (videoId) {
+        elements.push(
+          <div key={`yt-${i}`} className="relative w-full aspect-video rounded-2xl overflow-hidden shadow-md my-3.5 border border-emerald-900/15 bg-black">
+            <iframe
+              src={`https://www.youtube-nocookie.com/embed/${videoId}?start=${startSeconds}&rel=0`}
+              title="YouTube Video Player"
+              className="w-full h-full border-0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          </div>
+        );
+      }
+      continue;
+    }
+
     if (trimmed.startsWith('```')) {
       if (inCodeBlock) {
         elements.push(
-          <div key={`code-${i}`} className="p-3 bg-forest-950 text-emerald-200 rounded-xl font-mono text-xs overflow-x-auto leading-relaxed border border-forest-900 shadow-xs my-2">
+          <div key={`code-${i}`} className="p-3.5 bg-forest-950 text-emerald-200 rounded-xl font-mono text-xs overflow-x-auto leading-relaxed border border-forest-900 shadow-xs my-2.5">
             <pre className="whitespace-pre">{codeBuffer.join('\n')}</pre>
           </div>
         );

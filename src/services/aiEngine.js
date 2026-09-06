@@ -1,7 +1,31 @@
-import { fetchAndExtractContent } from './contentFetcher';
+import { fetchAndExtractContent, isYouTubeUrl } from './contentFetcher';
 
+const GEMINI_API_MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash'];
 const OLLAMA_ENDPOINT = 'http://localhost:11434/api/generate';
 
+/**
+ * Get configured Gemini API Key from environment or local storage
+ */
+export function getGeminiApiKey() {
+  return (
+    import.meta.env.VITE_GEMINI_API_KEY ||
+    localStorage.getItem('owlnudge_gemini_key') ||
+    localStorage.getItem('gemini_api_key') ||
+    ''
+  );
+}
+
+export function setGeminiApiKey(key) {
+  if (key) {
+    localStorage.setItem('owlnudge_gemini_key', key.trim());
+  } else {
+    localStorage.removeItem('owlnudge_gemini_key');
+  }
+}
+
+/**
+ * Master Roadmap & Essay Slicer
+ */
 export async function generateRoadmap({ goalText, targetWeeks = 3, dailyMinutes = 45, fileData = null }) {
   let extracted = null;
 
@@ -15,110 +39,279 @@ export async function generateRoadmap({ goalText, targetWeeks = 3, dailyMinutes 
     try {
       extracted = await fetchAndExtractContent(goalText.trim());
     } catch (e) {
-      console.warn('URL extraction error, proceeding with heuristic:', e);
+      console.warn('URL extraction error, proceeding with AI engine:', e);
     }
   }
 
-  try {
-    // Attempt local Ollama generation first
-    const contentContext = extracted?.rawText ? `Extracted Content:\n${extracted.rawText.slice(0, 1500)}` : '';
-    const prompt = `You are Owlnudge, an empathetic ADHD accountability mentor.
-Break down this learning goal or resource: "${extracted?.title || goalText}" into a realistic, anti-overwhelm ${targetWeeks}-week roadmap.
-${contentContext}
+  // 1. Attempt Google Gemini API first if API key is present or available
+  const apiKey = getGeminiApiKey();
+  if (apiKey) {
+    try {
+      const geminiResult = await generateWithGemini({ goalText, targetWeeks, dailyMinutes, fileData, extracted, apiKey });
+      if (geminiResult) {
+        return { source: 'gemini', ...geminiResult };
+      }
+    } catch (err) {
+      console.warn('Gemini API call failed, falling back:', err);
+    }
+  }
 
-Requirements:
-1. Max ${targetWeeks} progressive milestones.
-2. Each milestone has 3-4 micro-tasks with 2-3 microSteps per task.
-3. Each microStep MUST contain:
-   - "title": short action title
-   - "time": e.g. "45s", "2m", "10m"
-   - "readingMaterial": concise 2-3 paragraph reading passage or mental model so the user can read and learn inside the app.
-4. Automatically insert 2 buffer days every 7 days (type: 'BUFFER').
-5. Return ONLY valid JSON with this schema:
+  // 2. Attempt Local Ollama (e.g. Llama 3.2) if running
+  try {
+    const ollamaResult = await generateWithOllama({ goalText, targetWeeks, dailyMinutes, extracted });
+    if (ollamaResult) {
+      return { source: 'ollama', ...ollamaResult };
+    }
+  } catch (err) {
+    console.info('Ollama offline or timed out; switching to Owlnudge ADHD Slicer Engine.');
+  }
+
+  // 3. Fallback: Deterministic ADHD Heuristic Slicer with rich essays & chapter players
+  return generateHeuristicRoadmap(goalText, targetWeeks, dailyMinutes, extracted);
+}
+
+/**
+ * Generate comprehensive structured roadmap & masterclass essays using Google Gemini API
+ */
+async function generateWithGemini({ goalText, targetWeeks, dailyMinutes, fileData, extracted, apiKey }) {
+  const isVideo = extracted?.isVideo || isYouTubeUrl(goalText);
+  const videoId = extracted?.videoId;
+
+  const contextData = extracted?.rawText 
+    ? `Extracted Content / Summary:\n${extracted.rawText.slice(0, 3000)}` 
+    : (fileData?.content ? `Document Content:\n${fileData.content.slice(0, 3000)}` : '');
+
+  const prompt = `You are Owlnudge, an elite ADHD learning mentor and domain expert.
+Your mission is to deconstruct this topic/resource: "${extracted?.title || goalText}" into an anti-overwhelm, ultra-high-clarity ${targetWeeks}-week learning roadmap.
+
+${contextData}
+
+${isVideo ? `NOTE: This is a YouTube video/podcast (Video ID: ${videoId || 'VIDEO_ID'}). In the microSteps for each task, embed the responsive video player tag '[youtube:${videoId || 'VIDEO_ID'}:START_SECONDS]' at the beginning of the readingMaterial for relevant chapters.` : ''}
+
+CRITICAL REQUIREMENTS:
+1. Max ${targetWeeks} progressive milestones with meaningful pedagogical flow (Week 1 = Foundations & Mental Models, Week 2 = Core Mechanics & Patterns, Week 3 = Synthesis & Real-World Application).
+2. Each milestone must contain 2-3 focused learning tasks.
+3. Automatically insert 2 buffer days per week (type: 'BUFFER', durationMinutes: 0) to prevent burnout and absorb missed days.
+4. Each task must have 2-3 sequential microSteps.
+5. In each microStep:
+   - "title": Action-oriented micro-step title with time estimate (e.g., "Scan Primary Hypothesis (45s)", "Deep Concept Breakdown (2m)", "Trace Edge Cases (5m)").
+   - "time": Time string (e.g. "45s", "2m", "5m").
+   - "readingMaterial": Provide an EXCEPTIONALLY WELL-WRITTEN, substantial 2-4 paragraph mini-essay or mental model in markdown. Use markdown headings (###, ####), bold conceptual anchors, bullet points (-), blockquotes (>), or code blocks (\`\`\`) where appropriate. Teach the concept with utmost clarity, first principles, and zero filler!
+
+Return ONLY a valid JSON object strictly matching this schema:
 {
-  "title": string,
-  "summary": string,
-  "bufferDaysCount": number,
+  "title": "${extracted?.title ? extracted.title.replace(/"/g, '\\"') : 'Topic Title'}",
+  "summary": "Concise 1-2 sentence overview explaining the structure and buffer cushions.",
+  "bufferDaysCount": ${targetWeeks * 2},
   "milestones": [
     {
-      "id": string,
-      "weekNumber": number,
-      "title": string,
-      "description": string,
+      "id": "m1",
+      "weekNumber": 1,
+      "title": "Phase 1: Title",
+      "description": "Short phase description",
       "tasks": [
         {
-          "id": string,
-          "title": string,
-          "durationMinutes": number,
-          "type": "TASK" | "BUFFER",
-          "intuitionTip": string,
+          "id": "t1_1",
+          "title": "Task title",
+          "durationMinutes": ${dailyMinutes},
+          "type": "TASK",
+          "intuitionTip": "1-sentence working memory anchor or intuition rule.",
           "microSteps": [
             {
-              "title": string,
-              "time": string,
-              "readingMaterial": string
+              "title": "Step 1 Title (45s)",
+              "time": "45s",
+              "readingMaterial": "### Subheading\\n\\nComprehensive essay paragraph 1...\\n\\n#### Key Principles\\n- Point 1\\n- Point 2\\n\\n> **Intuition:** Core takeaway."
             }
           ]
+        },
+        {
+          "id": "b1_1",
+          "title": "Buffer Day 1 (Guilt-Free Rest & Catch-up)",
+          "durationMinutes": 0,
+          "type": "BUFFER",
+          "intuitionTip": "Buffer cushions protect your streak and give your nervous system space to consolidate knowledge.",
+          "microSteps": []
         }
       ]
     }
   ]
 }`;
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
+  for (const model of GEMINI_API_MODELS) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
 
-    const res = await fetch(OLLAMA_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'llama3.2',
-        prompt: prompt,
-        stream: false,
-        format: 'json'
-      }),
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            responseMimeType: 'application/json',
+            temperature: 0.3
+          }
+        }),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
 
-    if (res.ok) {
-      const data = await res.json();
-      const parsed = JSON.parse(data.response);
-      if (parsed && parsed.milestones && parsed.milestones.length > 0) {
-        return { source: 'ollama', ...parsed };
+      if (response.ok) {
+        const data = await response.json();
+        const jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (jsonText) {
+          const parsed = JSON.parse(jsonText);
+          if (parsed && parsed.milestones && parsed.milestones.length > 0) {
+            return parsed;
+          }
+        }
       }
+    } catch (e) {
+      console.warn(`Gemini model ${model} error:`, e);
     }
-  } catch (err) {
-    console.info('Ollama offline or timed out; utilizing Owlnudge deterministic ADHD Heuristic Slicer.');
   }
 
-  // Fallback: Deterministic ADHD Heuristic Slicer with rich reading passages
-  return generateHeuristicRoadmap(goalText, targetWeeks, dailyMinutes, extracted);
+  return null;
 }
 
+/**
+ * Local Ollama fallback generator
+ */
+async function generateWithOllama({ goalText, targetWeeks, dailyMinutes, extracted }) {
+  const contentContext = extracted?.rawText ? `Extracted Content:\n${extracted.rawText.slice(0, 1500)}` : '';
+  const prompt = `You are Owlnudge, an empathetic ADHD accountability mentor.
+Break down this learning goal: "${extracted?.title || goalText}" into an anti-overwhelm ${targetWeeks}-week roadmap with rich reading essays for each microStep.
+${contentContext}
+Return ONLY valid JSON matching the Owlnudge roadmap schema.`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+  const res = await fetch(OLLAMA_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'llama3.2',
+      prompt: prompt,
+      stream: false,
+      format: 'json'
+    }),
+    signal: controller.signal
+  });
+  clearTimeout(timeoutId);
+
+  if (res.ok) {
+    const data = await res.json();
+    const parsed = JSON.parse(data.response);
+    if (parsed && parsed.milestones && parsed.milestones.length > 0) {
+      return parsed;
+    }
+  }
+  return null;
+}
+
+/**
+ * Deterministic ADHD Heuristic Slicer with rich multi-paragraph essays and video chapter embeds
+ */
 function generateHeuristicRoadmap(goalText, targetWeeks, dailyMinutes, extracted) {
   const isUrl = /^(http|https):\/\/[^ "]+$/.test(goalText.trim());
   const lower = (extracted?.title || goalText).toLowerCase();
 
   let detectedTitle = extracted?.title || goalText;
-  let summary = `Structured ${targetWeeks}-week roadmap with progressive micro-goals, inline reading passages, and built-in buffer cushions.`;
+  let summary = `Structured ${targetWeeks}-week roadmap with progressive micro-goals, comprehensive reading passages, and built-in buffer cushions.`;
 
   if (isUrl && !extracted?.title) {
     if (lower.includes('udemy.com')) {
       const pathPart = goalText.split('/course/')[1]?.split('/')[0]?.replace(/-/g, ' ') || 'Udemy Masterclass';
       detectedTitle = `Udemy: ${pathPart.replace(/\b\w/g, l => l.toUpperCase())}`;
-      summary = `Deconstructed Udemy video syllabus into 3 bite-sized weekly modules with 2 buffer days/week so course lag never causes guilt.`;
+      summary = `Deconstructed Udemy video syllabus into bite-sized weekly modules with 2 buffer days/week.`;
     } else if (lower.includes('medium.com')) {
       const pathPart = goalText.split('/').pop()?.replace(/-/g, ' ') || 'Deep Dive Article';
       detectedTitle = `Medium: ${pathPart.replace(/\b\w/g, l => l.toUpperCase())}`;
       summary = `Sliced long-form engineering article into actionable mental models and applied exercises.`;
     } else if (lower.includes('youtube.com') || lower.includes('youtu.be')) {
-      detectedTitle = `YouTube Tutorial: Masterclass`;
-      summary = `Converted video playlist into single-concept sprints with dedicated rest buffers.`;
+      detectedTitle = `YouTube Masterclass Lecture`;
+      summary = `Converted video podcast into chapter-based sprints with embedded video players and dedicated rest buffers.`;
     }
   }
 
-  // If user provided custom sections from a file or article:
+  // 1. YouTube Video / Podcast Chapters Pipeline
+  if (extracted?.isVideo && extracted?.sections?.length > 0) {
+    const videoId = extracted.videoId;
+    const author = extracted.author || 'Speaker / Creator';
+
+    const videoTasks = extracted.sections.map((sec, idx) => ({
+      id: `t_vid_${idx + 1}`,
+      title: sec.title || `Chapter ${idx + 1}`,
+      durationMinutes: dailyMinutes,
+      type: 'TASK',
+      intuitionTip: `Anchor key insights from ${author} into your working memory.`,
+      microSteps: [
+        {
+          title: `Watch Video Segment & Identify Core Thesis (2m)`,
+          time: '2m',
+          readingMaterial: sec.content || `[youtube:${videoId}:0]\n\n### 📺 Chapter Overview - ${sec.title}\n\n**Creator:** ${author}\n\nWatch this chapter to grasp the primary thesis.`
+        },
+        {
+          title: `Mental Model Breakdown & Core Mechanics (2m)`,
+          time: '2m',
+          readingMaterial: `### 💡 Deep Dive: Critical Mechanisms\n\nIn this chapter of *${detectedTitle}*, note how the central problem is formulated.\n\n#### Key Analytical Angles:\n1. **First Principles Constraint**: What is the root bottleneck being tackled?\n2. **Counter-Intuitive Insight**: What common assumption does this approach discard?\n3. **Practical Trade-Offs**: Where does this method excel, and where should caution be exercised?\n\n> **⚡ Working Memory Anchor:**\n> Understanding the trade-offs allows you to apply this pattern in novel scenarios without hesitation.`
+        },
+        {
+          title: `Actionable Synthesis & Implementation (5m)`,
+          time: '5m',
+          readingMaterial: `### 🛠️ Execution & Synthesis\n\nTake 3 minutes to summarize the biggest takeaway from this segment in your own words.\n\n#### Checklist for this Module:\n- Identify 1 immediate action item you can implement today.\n- Note down any unfamiliar terms for later review during your buffer day.\n\nOnce done, click **Done & Complete Step** to mark this chapter complete!`
+        }
+      ]
+    }));
+
+    return {
+      source: 'youtube_chapters',
+      title: detectedTitle,
+      summary: `Deconstructed ${extracted.sections.length} video chapters from ${author} with embedded players and rest buffers.`,
+      bufferDaysCount: targetWeeks * 2,
+      milestones: [
+        {
+          id: 'm1',
+          weekNumber: 1,
+          title: 'Week 1: Core Thesis & Foundational Chapters',
+          description: 'Absorb the primary concepts with video-guided micro-sprints.',
+          tasks: [
+            ...videoTasks.slice(0, 2),
+            {
+              id: 'b1_1',
+              title: 'Buffer Day 1 (Rest & Guilt-Free Catch-up)',
+              durationMinutes: 0,
+              type: 'BUFFER',
+              intuitionTip: 'Buffers prevent burnout and protect your schedule.',
+              microSteps: []
+            },
+            ...(videoTasks.slice(2, 3) || [])
+          ]
+        },
+        {
+          id: 'm2',
+          weekNumber: 2,
+          title: 'Week 2: Advanced Mechanics & Synthesis',
+          description: 'Hands-on synthesis and practical application.',
+          tasks: [
+            ...(videoTasks.slice(3, 5) || []),
+            {
+              id: 'b2_1',
+              title: 'Buffer Day 2 (Consolidation Day)',
+              durationMinutes: 0,
+              type: 'BUFFER',
+              intuitionTip: 'Neural consolidation happens during rest.',
+              microSteps: []
+            }
+          ]
+        }
+      ]
+    };
+  }
+
+  // 2. Custom Uploaded Document / Extracted Web Article
   if (extracted?.sections && extracted.sections.length > 0) {
     const sectionTasks = extracted.sections.map((sec, idx) => ({
       id: `t_sec_${idx + 1}`,
@@ -128,19 +321,19 @@ function generateHeuristicRoadmap(goalText, targetWeeks, dailyMinutes, extracted
       intuitionTip: `Master the core intuition of ${sec.title}.`,
       microSteps: [
         {
-          title: `Scan key concepts in ${sec.title} (30s)`,
+          title: `Scan key concepts in ${sec.title} (45s)`,
           time: '45s',
           readingMaterial: sec.content || `Focus on understanding the core premise before applying the concept.`
         },
         {
           title: `Read breakdown & practical application (2m)`,
           time: '2m',
-          readingMaterial: `**Deep Dive Takeaway:**\n\n${sec.content}\n\n*Reflective Prompt: How does this apply to your current project or challenge?*`
+          readingMaterial: `### 📖 Deep Dive Analysis: ${sec.title}\n\n${sec.content}\n\n#### Strategic Reflection:\n- How does this pattern solve the friction in your existing workflow?\n- What are the boundary conditions where this method applies?`
         },
         {
           title: `Summarize 1 takeaway in your own words (5m)`,
           time: '5m',
-          readingMaterial: `Write down 1 single sentence that explains this concept to a 10-year-old. Once written, you have locked this pattern in memory.`
+          readingMaterial: `### ✏️ 1-Minute Synthesis\n\nWrite down 1 single sentence that explains this concept in plain English. Once written, you have locked this pattern in memory.`
         }
       ]
     }));
@@ -190,8 +383,8 @@ function generateHeuristicRoadmap(goalText, targetWeeks, dailyMinutes, extracted
     };
   }
 
-  // Default Coding & Algorithm Archetype
-  const isCoding = /leetcode|code|programming|algorithm|interview|dp|recursion|system|react|python|javascript|rust/i.test(lower);
+  // 3. Coding & Algorithm Masterclass Archetype
+  const isCoding = /leetcode|code|programming|algorithm|interview|dp|recursion|system|react|python|javascript|rust|backend|frontend/i.test(lower);
 
   if (isCoding || lower.includes('dp') || lower.includes('dynamic programming')) {
     return {
@@ -293,7 +486,7 @@ function generateHeuristicRoadmap(goalText, targetWeeks, dailyMinutes, extracted
     };
   }
 
-  // General Topic Fallback
+  // 4. General Open-Ended Topic Essay & Masterclass Archetype
   return {
     source: 'heuristic',
     title: detectedTitle,
@@ -303,12 +496,12 @@ function generateHeuristicRoadmap(goalText, targetWeeks, dailyMinutes, extracted
       {
         id: 'm1',
         weekNumber: 1,
-        title: 'Phase 1: Foundations & Core Concepts',
+        title: 'Phase 1: Foundations & Mental Models',
         description: 'Absorb the fundamental baseline with micro-reading modules.',
         tasks: [
           {
             id: 't1_1',
-            title: 'Foundational Overview & Key Mental Models',
+            title: `Foundational Overview: ${detectedTitle}`,
             durationMinutes: dailyMinutes,
             type: 'TASK',
             intuitionTip: 'Understand the big picture before diving into mechanics.',
@@ -373,7 +566,7 @@ Once you have read and internalized these three pillars, hit **Done & Complete S
           },
           {
             id: 't1_2',
-            title: 'Core Mechanics & Hands-on Implementation',
+            title: 'Core Mechanics & Applied Patterns',
             durationMinutes: dailyMinutes,
             type: 'TASK',
             intuitionTip: 'Turn abstract understanding into muscle memory through concrete practice.',
