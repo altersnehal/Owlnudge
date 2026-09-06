@@ -3,12 +3,14 @@ import Navbar from './components/layout/Navbar';
 import FocusPlanView from './components/unified/FocusPlanView';
 import DailyCheckin from './components/checkin/DailyCheckin';
 import RecoveryModal from './components/recovery/RecoveryModal';
+import PresentationDeck from './components/deck/PresentationDeck';
 import { Agentation } from 'agentation';
 import { generateRoadmap } from './services/aiEngine';
 import { loadStoredState, saveStoredState } from './services/storageService';
 import { audioService } from './services/audioService';
 
 export default function App() {
+  const [currentPath, setCurrentPath] = useState(window.location.pathname);
   const [roadmap, setRoadmap] = useState(null);
   const [activeTask, setActiveTask] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -22,6 +24,15 @@ export default function App() {
     buffersRemaining: 5,
     completedTasks: 3
   });
+
+  // Track path / routing
+  useEffect(() => {
+    const handlePopState = () => setCurrentPath(window.location.pathname);
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const isDeck = currentPath.startsWith('/deck') || window.location.hash === '#/deck' || window.location.search.includes('deck');
 
   // Load initial state or generate default roadmap
   useEffect(() => {
@@ -105,6 +116,10 @@ export default function App() {
     }));
   };
 
+  if (isDeck) {
+    return <PresentationDeck />;
+  }
+
   return (
     <div className="min-h-screen bg-[#F8FAF8] text-[#0F3D23] flex flex-col font-sans antialiased selection:bg-emerald-100">
       
@@ -152,8 +167,15 @@ export default function App() {
       <Agentation />
 
       {/* Quiet Single-Line Footer */}
-      <footer className="py-6 text-center text-xs text-slate-400 font-sans">
-        Owlnudge · Designed for neurodivergent focus & zero-shame consistency
+      <footer className="py-6 text-center text-xs text-slate-400 font-sans flex items-center justify-center gap-3">
+        <span>Owlnudge · Designed for neurodivergent focus & zero-shame consistency</span>
+        <span>·</span>
+        <a 
+          href="/deck" 
+          className="text-emerald-700 hover:text-emerald-900 font-medium underline flex items-center gap-1"
+        >
+          <span>Deck 📽️</span>
+        </a>
       </footer>
 
     </div>
