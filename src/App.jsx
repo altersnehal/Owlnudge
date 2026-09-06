@@ -3,6 +3,7 @@ import Navbar from './components/layout/Navbar';
 import FocusPlanView from './components/unified/FocusPlanView';
 import DailyCheckin from './components/checkin/DailyCheckin';
 import RecoveryModal from './components/recovery/RecoveryModal';
+import { Agentation } from 'agentation';
 import { generateRoadmap } from './services/aiEngine';
 import { loadStoredState, saveStoredState } from './services/storageService';
 import { audioService } from './services/audioService';
@@ -146,6 +147,9 @@ export default function App() {
         totalBufferDays={roadmap?.bufferDaysCount || 6}
         onClaimWin={handleClaimWin}
       />
+
+      {/* Agentation Visual Feedback Tool */}
+      <Agentation />
 
       {/* Quiet Single-Line Footer */}
       <footer className="py-6 text-center text-xs text-slate-400 font-sans">
