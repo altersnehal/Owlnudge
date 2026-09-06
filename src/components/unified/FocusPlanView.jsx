@@ -6,30 +6,21 @@ import {
   Volume2, 
   VolumeX, 
   LifeBuoy, 
-  Sparkles, 
-  Clock, 
   ArrowRight, 
   Shield, 
   BookOpen, 
-  Lightbulb, 
   Check, 
   ChevronDown, 
   ChevronUp, 
-  FileText, 
-  Upload, 
-  Search,
   Sliders
 } from 'lucide-react';
 import { audioService } from '../../services/audioService';
-import { readLocalFile } from '../../services/contentFetcher';
 import confetti from 'canvas-confetti';
 
 export default function FocusPlanView({ 
   roadmap, 
   activeTask, 
   onSelectTaskForFocus, 
-  onGenerateRoadmap, 
-  isGenerating,
   onCompleteSession,
   onOpenCheckin,
   onAbsorbBuffer,
@@ -49,15 +40,8 @@ export default function FocusPlanView({
   const [isCustomTimeOpen, setIsCustomTimeOpen] = useState(false);
   const [customMinutesInput, setCustomMinutesInput] = useState(25);
 
-  // Ingestion State
-  const [goalInput, setGoalInput] = useState(roadmap?.title || "Master Dynamic Programming & Recursion");
-  const [targetWeeks, setTargetWeeks] = useState(3);
-  const [dailyMinutes, setDailyMinutes] = useState(45);
   const [openMilestoneId, setOpenMilestoneId] = useState(roadmap?.milestones?.[0]?.id || 'm1');
-  const [uploadedFileName, setUploadedFileName] = useState(null);
-
   const focusRoomRef = useRef(null);
-  const fileInputRef = useRef(null);
 
   // Sync active task change
   useEffect(() => {
@@ -161,31 +145,6 @@ export default function FocusPlanView({
     focusRoomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const handleGenerate = (e) => {
-    e?.preventDefault();
-    if (!goalInput.trim()) return;
-    onGenerateRoadmap({ goalText: goalInput.trim(), targetWeeks, dailyMinutes });
-  };
-
-  const handleFileUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setUploadedFileName(file.name);
-      const fileData = await readLocalFile(file);
-      setGoalInput(`Resource: ${fileData.title}`);
-      onGenerateRoadmap({
-        goalText: fileData.title,
-        targetWeeks,
-        dailyMinutes,
-        fileData: fileData
-      });
-    } catch (err) {
-      console.error('File read error:', err);
-    }
-  };
-
   const formatTime = (secs) => {
     const m = Math.floor(secs / 60);
     const s = secs % 60;
@@ -213,120 +172,16 @@ export default function FocusPlanView({
   const milestones = roadmap?.milestones || [];
 
   return (
-    <div className="space-y-10 max-w-xl mx-auto">
+    <div className="space-y-8 max-w-xl mx-auto">
       
       {/* ========================================================================= */}
-      {/* STEP 1 (TOP): INTUITIVE MINIMALIST UNIFIED SEARCH & SLICER BAR             */}
+      {/* ACTIVE FOCUS ROOM & BODY DOUBLER (Execution Hero)                         */}
       {/* ========================================================================= */}
-      <section className="text-left">
-        <form onSubmit={handleGenerate} className="bg-white rounded-3xl p-2 sm:p-2.5 shadow-[0_10px_30px_-5px_rgba(15,61,35,0.04)] border border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 transition-all">
-          
-          {/* Search / URL / Topic Input */}
-          <div className="flex-1 flex items-center gap-2 px-3 py-1.5 bg-[#F8FAF8] rounded-2xl border border-slate-200/50">
-            <Search className="w-4 h-4 text-slate-400 shrink-0" />
-            <input
-              type="text"
-              value={goalInput}
-              onChange={(e) => setGoalInput(e.target.value)}
-              placeholder="Paste article URL, course link, or topic..."
-              className="w-full bg-transparent text-xs sm:text-sm font-medium text-forest-950 focus:outline-none placeholder:text-slate-400"
-            />
-            
-            {/* File Upload Trigger */}
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileUpload}
-              accept=".md,.txt,.pdf,.markdown"
-              className="hidden"
-            />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="p-1 px-2 rounded-lg hover:bg-slate-200/60 text-slate-500 hover:text-emerald-900 transition text-[11px] flex items-center gap-1 font-medium shrink-0"
-              title="Upload .md / .pdf / .txt file"
-            >
-              <Upload className="w-3.5 h-3.5 text-emerald-700" />
-              <span className="hidden sm:inline text-xs">Doc</span>
-            </button>
-
-            {goalInput && (
-              <button
-                type="button"
-                onClick={() => setGoalInput('')}
-                className="text-xs text-slate-400 hover:text-slate-600 w-4 h-4 flex items-center justify-center rounded-full bg-slate-200/70 shrink-0"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-
-          {/* Intuitively Integrated Timeline & Cap Selectors + CTA in Same Row */}
-          <div className="flex items-center gap-1.5 justify-between sm:justify-end shrink-0">
-            
-            {/* Timeline Selector Pill */}
-            <select
-              value={targetWeeks}
-              onChange={(e) => setTargetWeeks(Number(e.target.value))}
-              className="bg-[#F8FAF8] text-forest-950 text-xs font-semibold rounded-xl px-2 py-2 border border-slate-200/60 focus:outline-none cursor-pointer"
-              title="Timeline Duration"
-            >
-              <option value={2}>2w</option>
-              <option value={3}>3w</option>
-              <option value={4}>4w</option>
-            </select>
-
-            {/* Daily Cap Selector Pill */}
-            <select
-              value={dailyMinutes}
-              onChange={(e) => setDailyMinutes(Number(e.target.value))}
-              className="bg-[#F8FAF8] text-forest-950 text-xs font-semibold rounded-xl px-2 py-2 border border-slate-200/60 focus:outline-none cursor-pointer"
-              title="Daily Focus Cap"
-            >
-              <option value={30}>30m</option>
-              <option value={45}>45m</option>
-              <option value={60}>60m</option>
-            </select>
-
-            {/* Slice Goal CTA */}
-            <button
-              type="submit"
-              disabled={isGenerating}
-              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm active:scale-95 transition duration-100 disabled:opacity-50 flex items-center gap-1.5 shrink-0"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>{isGenerating ? 'Slicing...' : 'Slice Goal 🛡️'}</span>
-            </button>
-          </div>
-
-        </form>
-
-        {/* Uploaded File Notification Pill */}
-        {uploadedFileName && (
-          <div className="mt-2 px-3 py-1.5 bg-emerald-50 rounded-xl text-xs font-mono text-emerald-900 flex items-center justify-between border border-emerald-200/50">
-            <span className="flex items-center gap-1.5">
-              <FileText className="w-3.5 h-3.5 text-emerald-700" />
-              <span>Loaded: {uploadedFileName}</span>
-            </span>
-            <button
-              type="button"
-              onClick={() => setUploadedFileName(null)}
-              className="text-emerald-700 underline text-[11px]"
-            >
-              Remove
-            </button>
-          </div>
-        )}
-      </section>
-
-      {/* ========================================================================= */}
-      {/* STEP 2 (CENTER): ACTIVE FOCUS ROOM & BODY DOUBLER (Execution Hero)        */}
-      {/* ========================================================================= */}
-      <section ref={focusRoomRef} className="space-y-7 text-center pt-1">
+      <section ref={focusRoomRef} className="space-y-6 text-center pt-1">
         
         {/* Companion Mascot & Ambient Dialogue */}
-        <div className="flex flex-col items-center justify-center space-y-2.5">
-          <div className={`w-20 h-20 sm:w-22 sm:h-22 rounded-full bg-emerald-50/80 p-2.5 flex items-center justify-center transition-all duration-300 ${isRunning ? 'animate-breath scale-105' : ''}`}>
+        <div className="flex flex-col items-center justify-center space-y-2">
+          <div className={`w-20 h-20 sm:w-22 sm:h-22 rounded-full bg-emerald-50/80 p-2 flex items-center justify-center transition-all duration-300 ${isRunning ? 'animate-breath scale-105' : ''}`}>
             <img src="/assets/mascot.png" alt="Owlnudge Companion" className="w-full h-full object-contain" />
           </div>
           <p className="text-xs text-forest-800/80 font-sans max-w-xs transition-opacity duration-200">
@@ -340,7 +195,7 @@ export default function FocusPlanView({
 
         {/* Apple-Style Stopwatch Digital Timer with Presets & Manual Time Selection */}
         <div className="space-y-3 select-none">
-          <div className="font-mono font-semibold text-5xl sm:text-7xl text-forest-950 tracking-tight">
+          <div className="font-mono font-semibold text-6xl sm:text-7xl text-forest-950 tracking-tight">
             {formatTime(secondsLeft)}
           </div>
 
@@ -393,7 +248,7 @@ export default function FocusPlanView({
 
           {/* Inline Custom Minutes Stepper / Input (Manual Option) */}
           {isCustomTimeOpen && (
-            <div className="p-3 bg-white rounded-2xl max-w-xs mx-auto shadow-sm border border-slate-100 flex items-center justify-center gap-2 animate-in fade-in duration-150">
+            <div className="p-2.5 bg-white rounded-2xl max-w-xs mx-auto shadow-sm border border-slate-100 flex items-center justify-center gap-2 animate-in fade-in duration-150">
               <span className="text-xs text-slate-500 font-sans">Set duration:</span>
               <input
                 type="number"
@@ -412,13 +267,13 @@ export default function FocusPlanView({
           )}
         </div>
 
-        {/* Active Task Card with Intuition & Expandable Micro-Step Reading */}
+        {/* Active Task Card with Typography-First Slop-Free Intuition & Expandable Micro-Steps */}
         <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-[0_12px_32px_-4px_rgba(15,61,35,0.06),0_2px_6px_0_rgba(0,0,0,0.02)] text-left space-y-4 border border-slate-100">
           
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span className="text-[11px] font-mono text-emerald-800 uppercase tracking-wide font-semibold">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span className="text-[10px] font-mono text-emerald-800 uppercase tracking-wider font-semibold">
                 Active Focus Task
               </span>
             </div>
@@ -427,25 +282,27 @@ export default function FocusPlanView({
             </span>
           </div>
 
-          <div>
-            <h3 className="text-sm sm:text-base font-bold text-forest-950">
+          <div className="space-y-2">
+            <h3 className="text-base sm:text-lg font-bold text-forest-950 leading-snug">
               {activeTask?.title || "Climbing Stairs (Visualizing Base Cases)"}
             </h3>
 
-            {/* Pinned Working Memory Anchor Flashcard */}
+            {/* Slop-Free Typography-First Working Memory Anchor */}
             {activeTask?.intuitionTip && (
-              <div className="mt-2.5 p-3 rounded-xl bg-[#F8FAF8] flex items-start gap-2.5 border-l-2 border-emerald-500">
-                <Lightbulb className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <p className="text-xs text-forest-900/90 font-sans leading-relaxed">
-                  <strong>Intuition:</strong> {activeTask.intuitionTip}
+              <div className="pt-2 border-t border-slate-100 flex items-start gap-2">
+                <span className="text-[10px] font-mono uppercase tracking-wider font-semibold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded shrink-0 select-none">
+                  Intuition
+                </span>
+                <p className="text-xs text-forest-900/80 font-sans leading-relaxed">
+                  {activeTask.intuitionTip}
                 </p>
               </div>
             )}
           </div>
 
           {/* Sequential Micro-Steps with Expandable Reading Passages */}
-          <div className="space-y-2.5 pt-1">
-            <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wide block">
+          <div className="space-y-2 pt-2">
+            <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">
               Micro-Steps & Reading Material
             </span>
 
@@ -497,7 +354,7 @@ export default function FocusPlanView({
                       </span>
                       <div>
                         <p className="text-xs font-bold text-forest-950">{stepTitle}</p>
-                        <p className="text-[10px] text-slate-400 font-mono">~{stepTime} · Click to expand reading</p>
+                        <p className="text-[10px] text-slate-400 font-mono">~{stepTime} · Click to view concept</p>
                       </div>
                     </div>
 
@@ -665,7 +522,7 @@ export default function FocusPlanView({
       </section>
 
       {/* ========================================================================= */}
-      {/* STEP 3 (BOTTOM): THE LIVING CURRICULUM ROADMAP (Weekly Milestone Drawer)  */}
+      {/* THE LIVING CURRICULUM ROADMAP (Weekly Milestone Drawer)                   */}
       {/* ========================================================================= */}
       <section className="space-y-4 pt-6 border-t border-slate-200/60 text-left">
         

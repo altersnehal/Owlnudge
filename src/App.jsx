@@ -108,22 +108,23 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#F8FAF8] text-[#0F3D23] flex flex-col font-sans antialiased selection:bg-emerald-100">
       
-      {/* Top Dock Nav with Audio Toggle & Solid Green Check-in CTA */}
+      {/* Single Unified Top Navigation Bar */}
       <Navbar
         onOpenCheckin={() => setIsCheckinOpen(true)}
         bufferCount={stats.buffersRemaining}
         isAudioOn={isAudioOn}
         onToggleAudio={toggleGlobalAudio}
+        onGenerateRoadmap={handleGenerateRoadmap}
+        isGenerating={isGenerating}
+        currentGoalTitle={roadmap?.title}
       />
 
-      {/* Main Unified Single-Focus Workspace (Focus + Plan Merged) */}
+      {/* Main Unified Single-Focus Workspace */}
       <main className="flex-1 max-w-2xl w-full mx-auto px-4 sm:px-6 py-2 sm:py-4 pb-20">
         <FocusPlanView
           roadmap={roadmap}
           activeTask={activeTask}
           onSelectTaskForFocus={handleSelectTaskForFocus}
-          onGenerateRoadmap={handleGenerateRoadmap}
-          isGenerating={isGenerating}
           onCompleteSession={handleCompleteSession}
           onOpenCheckin={() => setIsCheckinOpen(true)}
           onAbsorbBuffer={handleAbsorbBuffer}
