@@ -386,10 +386,44 @@ Once you have read and internalized these three pillars, hit **Done & Complete S
           </p>
         </div>
 
-        {/* Apple-Style Stopwatch Digital Timer */}
-        <div className="space-y-2.5 select-none">
-          <div className="font-mono font-semibold text-6xl sm:text-7xl text-forest-950 tracking-tight">
-            {formatTime(secondsLeft)}
+        {/* Apple-Style Stopwatch Digital Timer with Tactile Start/Stop Joystick Dial */}
+        <div className="space-y-3 select-none">
+          <div className="flex items-center justify-center gap-3.5 sm:gap-5">
+            {/* Big Digital Timer Display */}
+            <div className="font-mono font-semibold text-6xl sm:text-7xl text-forest-950 tracking-tight">
+              {formatTime(secondsLeft)}
+            </div>
+
+            {/* Tactile Start / Stop Joystick Switch Button */}
+            <button
+              onClick={() => setIsRunning(!isRunning)}
+              className={`group relative flex items-center justify-center transition-all duration-200 active:scale-90 focus:outline-none shrink-0 ${
+                isRunning
+                  ? 'w-14 h-14 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl bg-amber-500 text-white shadow-[0_8px_20px_-3px_rgba(245,158,11,0.45),inset_0_2px_4px_rgba(255,255,255,0.4)] border-2 border-amber-300'
+                  : 'w-14 h-14 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl bg-emerald-600 text-white shadow-[0_8px_24px_-4px_rgba(16,185,129,0.5),inset_0_2px_4px_rgba(255,255,255,0.4)] border-2 border-emerald-400 hover:bg-emerald-500'
+              }`}
+              title={isRunning ? "Pause Sprint" : "Start Sprint"}
+            >
+              {/* Internal Bezel Depth */}
+              <span className="absolute inset-1 rounded-xl sm:rounded-2xl border border-white/30 pointer-events-none" />
+              
+              {/* Joystick Icon & Label */}
+              <div className={`flex flex-col items-center justify-center transition-transform duration-150 ${isRunning ? 'scale-95' : 'group-hover:scale-105'}`}>
+                {isRunning ? (
+                  <Pause className="w-5 h-5 sm:w-6 sm:h-6 fill-current" />
+                ) : (
+                  <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-current ml-0.5" />
+                )}
+                <span className="text-[8px] sm:text-[9px] font-mono uppercase tracking-wider font-bold mt-0.5 opacity-90">
+                  {isRunning ? "PAUSE" : "START"}
+                </span>
+              </div>
+
+              {/* Gentle Active Glow Ring */}
+              {isRunning && (
+                <span className="absolute -inset-1 rounded-2xl sm:rounded-3xl border-2 border-amber-400/50 animate-ping pointer-events-none" />
+              )}
+            </button>
           </div>
 
           {/* Attention Burst Pacing Selectors */}
@@ -716,30 +750,17 @@ Once you have read and internalized these three pillars, hit **Done & Complete S
       </section>
 
       {/* ========================================================================= */}
-      {/* 4. TACTILE CONTROL BAR (Start Sprint, Brown Noise, Stuck, Done)           */}
+      {/* 4. TACTILE CONTROL BAR (Brown Noise, Stuck, Done)                         */}
       {/* ========================================================================= */}
       <section className="flex flex-wrap items-center justify-center gap-2.5 pt-1">
         
-        {/* Start / Pause Sprint */}
-        <button
-          onClick={() => setIsRunning(!isRunning)}
-          className={`px-5 py-2.5 rounded-full text-xs font-semibold shadow-sm active:scale-95 transition-all duration-150 flex items-center gap-2 ${
-            isRunning
-              ? 'bg-amber-100 text-amber-900 hover:bg-amber-200'
-              : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-          }`}
-        >
-          {isRunning ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
-          <span>{isRunning ? 'Pause Sprint' : 'Start Sprint'}</span>
-        </button>
-
         {/* Brown Noise Generator */}
         <button
           onClick={toggleBrownNoise}
-          className={`px-3.5 py-2.5 rounded-full text-xs font-medium flex items-center gap-1.5 shadow-sm active:scale-95 transition-all duration-150 ${
+          className={`px-4 py-2.5 rounded-full text-xs font-medium flex items-center gap-1.5 shadow-sm active:scale-95 transition-all duration-150 ${
             isBrownNoiseOn
               ? 'bg-emerald-100 text-emerald-900 font-semibold'
-              : 'bg-white hover:bg-slate-50 text-forest-900'
+              : 'bg-white hover:bg-slate-50 text-forest-900 border border-slate-200/60'
           }`}
         >
           {isBrownNoiseOn ? (
