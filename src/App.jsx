@@ -9,7 +9,7 @@ import { generateRoadmap } from './services/aiEngine';
 import { loadStoredState, saveStoredState } from './services/storageService';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('planner');
+  const [activeTab, setActiveTab] = useState('bodydouble');
   const [roadmap, setRoadmap] = useState(null);
   const [activeTask, setActiveTask] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -33,7 +33,7 @@ export default function App() {
     } else {
       // Generate default
       handleGenerateRoadmap({
-        goalText: "Master Dynamic Programming & System Design for Tech Interviews",
+        goalText: "Master Dynamic Programming & Recursion",
         targetWeeks: 3,
         dailyMinutes: 45
       });
@@ -78,7 +78,6 @@ export default function App() {
       ...prev,
       focusMinutes: prev.focusMinutes + minutesSpent
     }));
-    setActiveTab('dashboard');
   };
 
   const handleSimulateMissedDay = () => {
@@ -94,9 +93,9 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8faf7] text-slate-900 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#F8FAF8] text-[#0F3D23] flex flex-col font-sans antialiased selection:bg-emerald-100">
       
-      {/* Navigation Bar */}
+      {/* Floating Apple-Style Dock Nav */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -104,8 +103,15 @@ export default function App() {
         onSimulateMissedDay={handleSimulateMissedDay}
       />
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Main Single-Focus Content Workspace */}
+      <main className="flex-1 max-w-xl w-full mx-auto px-4 sm:px-6 py-6 pb-24">
+        {activeTab === 'bodydouble' && (
+          <BodyDoubler
+            activeTask={activeTask}
+            onCompleteSession={handleCompleteSession}
+          />
+        )}
+
         {activeTab === 'planner' && (
           <GoalPlanner
             roadmap={roadmap}
@@ -119,13 +125,6 @@ export default function App() {
           <DailyCheckin
             activeTask={activeTask}
             onLaunchBodyDouble={handleLaunchBodyDouble}
-          />
-        )}
-
-        {activeTab === 'bodydouble' && (
-          <BodyDoubler
-            activeTask={activeTask}
-            onCompleteSession={handleCompleteSession}
           />
         )}
 
@@ -146,19 +145,9 @@ export default function App() {
         onClaimWin={handleClaimWin}
       />
 
-      {/* Footer */}
-      <footer className="border-t border-emerald-100 bg-white/60 py-6 text-center text-xs text-forest-800/80 font-sans">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className="font-display font-bold text-forest-950">Owlnudge</span>
-            <span>· ADHD Accountability & Recovery Mentor</span>
-          </div>
-          <div className="flex items-center gap-3 text-[11px] font-display font-medium text-forest-700">
-            <a href="/storyboard.html" target="_blank" className="hover:text-forest-950 underline">View Storyboard</a>
-            <a href="/visual-direction.html" target="_blank" className="hover:text-forest-950 underline">Visual Direction Lab</a>
-            <a href="/plan.html" target="_blank" className="hover:text-forest-950 underline">Architecture Plan</a>
-          </div>
-        </div>
+      {/* Quiet Single-Line Footer */}
+      <footer className="py-6 text-center text-xs text-slate-400 font-sans">
+        Owlnudge · Designed for neurodivergent focus
       </footer>
 
     </div>
