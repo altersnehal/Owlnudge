@@ -108,15 +108,12 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#F8FAF8] text-[#0F3D23] flex flex-col font-sans antialiased selection:bg-emerald-100">
       
-      {/* Single Unified Top Navigation Bar */}
+      {/* Top Floating Dock Bar */}
       <Navbar
         onOpenCheckin={() => setIsCheckinOpen(true)}
         bufferCount={stats.buffersRemaining}
         isAudioOn={isAudioOn}
         onToggleAudio={toggleGlobalAudio}
-        onGenerateRoadmap={handleGenerateRoadmap}
-        isGenerating={isGenerating}
-        currentGoalTitle={roadmap?.title}
       />
 
       {/* Main Unified Single-Focus Workspace */}
@@ -125,6 +122,8 @@ export default function App() {
           roadmap={roadmap}
           activeTask={activeTask}
           onSelectTaskForFocus={handleSelectTaskForFocus}
+          onGenerateRoadmap={handleGenerateRoadmap}
+          isGenerating={isGenerating}
           onCompleteSession={handleCompleteSession}
           onOpenCheckin={() => setIsCheckinOpen(true)}
           onAbsorbBuffer={handleAbsorbBuffer}
