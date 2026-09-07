@@ -17,11 +17,22 @@ import {
   Upload,
   Sparkles,
   FileText,
-  X
+  X,
+  Compass,
+  Zap,
+  RotateCcw
 } from 'lucide-react';
 import { audioService } from '../../services/audioService';
 import { readLocalFile } from '../../services/contentFetcher';
 import confetti from 'canvas-confetti';
+
+const INSPIRATION_CHIPS = [
+  { label: "📺 Huberman Focus Podcast", query: "https://www.youtube.com/watch?v=lgZ0xU5FUuY" },
+  { label: "⚡ System Design & Caching", query: "Distributed Caching & Load Balancing Architecture" },
+  { label: "💻 LeetCode DP Patterns", query: "Dynamic Programming Memoization Patterns" },
+  { label: "🏛️ Stoic Philosophy", query: "Philosophy of Marcus Aurelius & Dichotomy of Control" },
+  { label: "🧠 ADHD Dopamine Engine", query: "Neurobiology of ADHD & Overcoming Initiation Paralysis" }
+];
 
 function formatInlineText(text) {
   if (!text) return '';
@@ -55,14 +66,14 @@ function renderFormattedReading(readingText) {
     const line = lines[i];
     const trimmed = line.trim();
 
-    // 1. YouTube Video Embed Tag: [youtube:VIDEO_ID:START_SECONDS] or [youtube:VIDEO_ID]
+    // 1. YouTube Video Embed Tag: [youtube:VIDEO_ID:START_SECONDS]
     if (trimmed.startsWith('[youtube:') && trimmed.endsWith(']')) {
       const parts = trimmed.slice(9, -1).split(':');
       const videoId = parts[0];
       const startSeconds = parseInt(parts[1], 10) || 0;
       if (videoId) {
         elements.push(
-          <div key={`yt-${i}`} className="relative w-full aspect-video rounded-2xl overflow-hidden shadow-md my-3.5 border border-emerald-900/15 bg-black">
+          <div key={`yt-${i}`} className="relative w-full aspect-video rounded-2xl overflow-hidden shadow-lg my-4 border border-emerald-900/20 bg-black">
             <iframe
               src={`https://www.youtube-nocookie.com/embed/${videoId}?start=${startSeconds}&rel=0`}
               title="YouTube Video Player"
@@ -79,7 +90,7 @@ function renderFormattedReading(readingText) {
     if (trimmed.startsWith('```')) {
       if (inCodeBlock) {
         elements.push(
-          <div key={`code-${i}`} className="p-3.5 bg-forest-950 text-emerald-200 rounded-xl font-mono text-xs overflow-x-auto leading-relaxed border border-forest-900 shadow-xs my-2.5">
+          <div key={`code-${i}`} className="p-4 bg-forest-950 text-emerald-200 rounded-2xl font-mono text-xs overflow-x-auto leading-relaxed border border-forest-900 shadow-md my-3">
             <pre className="whitespace-pre">{codeBuffer.join('\n')}</pre>
           </div>
         );
@@ -100,27 +111,27 @@ function renderFormattedReading(readingText) {
 
     if (trimmed.startsWith('### ')) {
       elements.push(
-        <h4 key={i} className="font-display font-bold text-sm sm:text-base text-forest-950 pt-2 pb-1 border-b border-emerald-100/60">
+        <h4 key={i} className="font-display font-bold text-sm sm:text-base text-forest-950 pt-3 pb-1 border-b border-emerald-100/70">
           {trimmed.replace('### ', '')}
         </h4>
       );
     } else if (trimmed.startsWith('#### ')) {
       elements.push(
-        <h5 key={i} className="font-bold text-xs sm:text-sm text-forest-900 pt-1.5">
+        <h5 key={i} className="font-bold text-xs sm:text-sm text-forest-900 pt-2 text-emerald-900">
           {trimmed.replace('#### ', '')}
         </h5>
       );
     } else if (trimmed.startsWith('> ')) {
       elements.push(
-        <blockquote key={i} className="p-3 my-2 bg-emerald-50/80 rounded-xl border-l-2 border-emerald-500 text-xs text-emerald-950 leading-relaxed">
+        <blockquote key={i} className="p-3.5 my-2.5 bg-emerald-50/90 rounded-2xl border-l-4 border-emerald-600 text-xs text-emerald-950 leading-relaxed font-sans shadow-xs">
           {formatInlineText(trimmed.replace('> ', ''))}
         </blockquote>
       );
     } else if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
       elements.push(
-        <div key={i} className="flex items-start gap-2 pl-1 py-0.5">
+        <div key={i} className="flex items-start gap-2.5 pl-1 py-1">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 mt-1.5 shrink-0" />
-          <p className="flex-1 text-xs sm:text-sm text-forest-900/90 leading-relaxed">
+          <p className="flex-1 text-xs sm:text-sm text-forest-900/90 leading-relaxed font-sans">
             {formatInlineText(trimmed.replace(/^[-*]\s+/, ''))}
           </p>
         </div>
@@ -130,23 +141,23 @@ function renderFormattedReading(readingText) {
       const num = match[1];
       const rest = trimmed.slice(match[0].length);
       elements.push(
-        <div key={i} className="flex items-start gap-2 pl-1 py-0.5">
+        <div key={i} className="flex items-start gap-2.5 pl-1 py-1">
           <span className="font-mono text-xs font-bold text-emerald-700 shrink-0 mt-0.5">{num}.</span>
-          <p className="flex-1 text-xs sm:text-sm text-forest-900/90 leading-relaxed">
+          <p className="flex-1 text-xs sm:text-sm text-forest-900/90 leading-relaxed font-sans">
             {formatInlineText(rest)}
           </p>
         </div>
       );
     } else {
       elements.push(
-        <p key={i} className="text-xs sm:text-sm text-forest-900/90 leading-relaxed">
+        <p key={i} className="text-xs sm:text-sm text-forest-900/90 leading-relaxed font-sans">
           {formatInlineText(trimmed)}
         </p>
       );
     }
   }
 
-  return <div className="space-y-2">{elements}</div>;
+  return <div className="space-y-2.5">{elements}</div>;
 }
 
 export default function FocusPlanView({ 
@@ -170,11 +181,11 @@ export default function FocusPlanView({
   const [showStuckModal, setShowStuckModal] = useState(false);
   const [isSessionCompleted, setIsSessionCompleted] = useState(false);
 
-  // Custom / Manual Time Selection State
+  // Custom Time State
   const [isCustomTimeOpen, setIsCustomTimeOpen] = useState(false);
   const [customMinutesInput, setCustomMinutesInput] = useState(25);
 
-  // Ingestion / Slicer Bar State (Positioned below the time block)
+  // Ingestion / Slicer Bar State
   const [goalInput, setGoalInput] = useState(roadmap?.title || "Master Dynamic Programming & Recursion");
   const [targetWeeks, setTargetWeeks] = useState(3);
   const [dailyMinutes, setDailyMinutes] = useState(45);
@@ -245,21 +256,20 @@ export default function FocusPlanView({
   };
 
   const handleStepComplete = (index) => {
-    if (index === activeStepIndex) {
-      const nextIndex = index + 1;
-      setActiveStepIndex(nextIndex);
-      setExpandedStepIndex(nextIndex);
-      confetti({
-        particleCount: 35,
-        spread: 55,
-        origin: { y: 0.65 },
-        colors: ['#16A34A', '#FEF08A']
-      });
+    const nextIndex = index + 1;
+    setActiveStepIndex(nextIndex);
+    setExpandedStepIndex(nextIndex);
+    
+    confetti({
+      particleCount: 45,
+      spread: 60,
+      origin: { y: 0.65 },
+      colors: ['#10B981', '#34D399', '#FEF08A']
+    });
 
-      const totalSteps = activeTask?.microSteps?.length || 3;
-      if (nextIndex >= totalSteps) {
-        handleCompleteSession(false);
-      }
+    const totalSteps = activeTask?.microSteps?.length || 3;
+    if (nextIndex >= totalSteps) {
+      handleCompleteSession(false);
     }
   };
 
@@ -268,11 +278,12 @@ export default function FocusPlanView({
     audioService.stop();
     setIsBrownNoiseOn(false);
     setIsSessionCompleted(true);
+    
     confetti({
-      particleCount: 85,
-      spread: 95,
+      particleCount: 90,
+      spread: 100,
       origin: { y: 0.55 },
-      colors: ['#16A34A', '#34D399', '#FEF08A']
+      colors: ['#10B981', '#34D399', '#6EE7B7', '#FEF08A']
     });
 
     const elapsedMinutes = Math.max(1, Math.round((timerDuration - secondsLeft) / 60));
@@ -293,11 +304,17 @@ export default function FocusPlanView({
     focusRoomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const handleGenerate = async (e) => {
+  const handleGenerate = async (e, customQuery = null) => {
     e?.preventDefault();
-    if (!goalInput.trim()) return;
+    const query = customQuery || goalInput;
+    if (!query.trim()) return;
+    
+    if (customQuery) {
+      setGoalInput(customQuery);
+    }
+
     await onGenerateRoadmap?.({ 
-      goalText: goalInput.trim(), 
+      goalText: query.trim(), 
       targetWeeks: Number(targetWeeks) || 3, 
       dailyMinutes: Number(dailyMinutes) || 45 
     });
@@ -322,218 +339,72 @@ export default function FocusPlanView({
       handleResetSession();
       focusRoomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch (err) {
-      console.error('File read error:', err);
+      console.error('File upload error:', err);
     }
   };
 
-  const formatTime = (secs) => {
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  };
+  // Format timer display
+  const minutes = Math.floor(secondsLeft / 60);
+  const seconds = secondsLeft % 60;
+  const timerFormatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  const progressPercent = Math.min(100, Math.max(0, ((timerDuration - secondsLeft) / timerDuration) * 100));
 
+  const milestones = roadmap?.milestones || [];
   const microSteps = activeTask?.microSteps || [
     {
-      title: 'Scan Core Objectives & Thesis (45s)',
-      time: '45s',
-      readingMaterial: `### 🎯 Core Focus Objectives - Foundational Overview & Key Mental Models
-
-The primary goal of this sprint is establishing a rock-solid mental framework without getting trapped in cognitive overload or premature rabbit holes.
-
-#### Key Principles:
-1. **The 80/20 Foundation**: 80% of real-world outcomes in this subject stem from mastering 3 core primitives. Our focus is zeroing in on those foundational primitives before touching secondary edge cases.
-2. **First-Principles Thinking**: Rather than memorizing rules or steps by rote, understand the root problem that forced the creation of this paradigm. When you understand *why* a constraint exists, the solution becomes self-evident.
-3. **Working Memory Conservation**: Neurodivergent learners excel when concepts are chunked into self-contained units. Read this overview once to form an overarching mental map, then move directly to step 2.`
+      title: "1. Scan Core Objectives (45s)",
+      time: "45s",
+      readingMaterial: "### 🎯 Core Focus\n\nUnderstand the primary mental model before touching code or detailed implementation."
     },
     {
-      title: 'Deep Concept Reading: The Execution Architecture (2m)',
-      time: '2m',
-      readingMaterial: `### 💡 Primary Architecture & Framework
-
-To master this subject, break the entire domain into three continuous operational layers:
-
-#### 1. Input & Initiation Layer
-Every effective system starts with unambiguous inputs. In this domain, failure to define boundary conditions early leads to cognitive friction and analysis paralysis. Always ask: *"What are the non-negotiable inputs required to trigger execution?"*
-
-#### 2. Processing & State Transition
-At its core, this concept transforms raw inputs into structured outcomes through a series of deterministic state changes. When dissecting any complex problem:
-- Isolate the individual transformations one step at a time.
-- Verify each intermediate state independently before coupling them together.
-- Keep state mutations localized and predictable.
-
-#### 3. Output Validation & Feedback Loops
-Without an immediate feedback loop, learning decay occurs within hours. Build a micro-verification checkpoint after each concept to prove that your mental model matches reality.
-
-> **💡 Mental Model Takeaway:**
-> A simple model that you can execute under stress is 10x more valuable than a complex model you abandon.`
+      title: "2. Deep Dive & Architectural Mechanics (2m)",
+      time: "2m",
+      readingMaterial: "### 💡 Key Mechanism\n\nStudy how state transitions occur and verify each edge case independently."
     },
     {
-      title: 'Practical Synthesis & Reflection Prompt (5m)',
-      time: '5m',
-      readingMaterial: `### 🛠️ Synthesis & Real-World Application
-
-Now that the core principles and architecture are clear, let's cement the knowledge into long-term memory.
-
-#### Reflection Checklist:
-- Can you explain the core mechanism in 2 sentences to someone outside the field?
-- Where is the single biggest point of friction when applying this concept, and how does the framework bypass it?
-- What is one tangible project or problem you can test this on today?
-
-Once you have read and internalized these three pillars, hit **Done & Complete Step** below to seal the loop!`
+      title: "3. Synthesis & Applied Practice (5m)",
+      time: "5m",
+      readingMaterial: "### 🛠️ Execution & Synthesis\n\nWrite down 1 core takeaway in your own words. Click **Done & Complete Step** when ready!"
     }
   ];
 
-  const milestones = roadmap?.milestones || [];
-
   return (
-    <div className="space-y-6 max-w-xl mx-auto">
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300">
       
       {/* ========================================================================= */}
-      {/* 1. TOP: COMPANION MASCOT & BIG STOPWATCH TIMER                            */}
+      {/* 1. INTENT & INGESTION STAGE: What Are We Crushing Today?                  */}
       {/* ========================================================================= */}
-      <section ref={focusRoomRef} className="space-y-4 text-center pt-2">
+      <section className="text-left space-y-3">
         
-        {/* Companion Mascot & Ambient Prompt */}
-        <div className="flex flex-col items-center justify-center space-y-2">
-          <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-emerald-50/80 p-2 flex items-center justify-center transition-all duration-300 ${isRunning ? 'animate-breath scale-105' : ''}`}>
-            <img src="/assets/mascot.png" alt="Owlnudge Companion" className="w-full h-full object-contain" />
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[11px] font-mono text-emerald-800 uppercase tracking-wider font-semibold">
+              ADHD-Guided Slicing Engine
+            </span>
           </div>
-          <p className="text-xs text-forest-800/80 font-sans max-w-xs transition-opacity duration-200">
-            {isSessionCompleted
-              ? "Sprint completed! Notice how good closure feels."
-              : isRunning
-              ? "I'm sitting beside you. Read Step 1 and press Done."
-              : "Ready when you are. Press Start Sprint to begin."}
+          <h2 className="font-display font-bold text-xl sm:text-2xl text-forest-950 tracking-tight">
+            What are we mastering today?
+          </h2>
+          <p className="text-xs text-slate-500 font-sans">
+            Paste a YouTube video/podcast, article link, upload a syllabus, or type any topic.
           </p>
         </div>
 
-        {/* Apple-Style Stopwatch Digital Timer with Tactile Start/Stop Joystick Dial */}
-        <div className="space-y-3 select-none">
-          <div className="flex items-center justify-center gap-3.5 sm:gap-5">
-            {/* Big Digital Timer Display */}
-            <div className="font-mono font-semibold text-6xl sm:text-7xl text-forest-950 tracking-tight">
-              {formatTime(secondsLeft)}
-            </div>
-
-            {/* Tactile Start / Stop Joystick Switch Button */}
-            <button
-              onClick={() => setIsRunning(!isRunning)}
-              className={`group relative flex items-center justify-center transition-all duration-200 active:scale-90 focus:outline-none shrink-0 ${
-                isRunning
-                  ? 'w-14 h-14 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl bg-amber-500 text-white shadow-[0_8px_20px_-3px_rgba(245,158,11,0.45),inset_0_2px_4px_rgba(255,255,255,0.4)] border-2 border-amber-300'
-                  : 'w-14 h-14 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl bg-emerald-600 text-white shadow-[0_8px_24px_-4px_rgba(16,185,129,0.5),inset_0_2px_4px_rgba(255,255,255,0.4)] border-2 border-emerald-400 hover:bg-emerald-500'
-              }`}
-              title={isRunning ? "Pause Sprint" : "Start Sprint"}
-            >
-              {/* Internal Bezel Depth */}
-              <span className="absolute inset-1 rounded-xl sm:rounded-2xl border border-white/30 pointer-events-none" />
-              
-              {/* Joystick Icon & Label */}
-              <div className={`flex flex-col items-center justify-center transition-transform duration-150 ${isRunning ? 'scale-95' : 'group-hover:scale-105'}`}>
-                {isRunning ? (
-                  <Pause className="w-5 h-5 sm:w-6 sm:h-6 fill-current" />
-                ) : (
-                  <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-current ml-0.5" />
-                )}
-                <span className="text-[8px] sm:text-[9px] font-mono uppercase tracking-wider font-bold mt-0.5 opacity-90">
-                  {isRunning ? "PAUSE" : "START"}
-                </span>
-              </div>
-
-              {/* Gentle Active Glow Ring */}
-              {isRunning && (
-                <span className="absolute -inset-1 rounded-2xl sm:rounded-3xl border-2 border-amber-400/50 animate-ping pointer-events-none" />
-              )}
-            </button>
-          </div>
-
-          {/* Attention Burst Pacing Selectors */}
-          <div className="flex flex-wrap items-center justify-center gap-1.5 pt-0.5">
-            <button
-              onClick={() => handleSelectBurstDuration(10)}
-              className={`px-3 py-1 rounded-full text-[11px] font-mono transition active:scale-95 ${
-                timerDuration === 10 * 60 && !isCustomTimeOpen
-                  ? 'bg-forest-950 text-white font-bold shadow-xs'
-                  : 'bg-white hover:bg-slate-100 text-slate-500'
-              }`}
-            >
-              10m Burst
-            </button>
-            <button
-              onClick={() => handleSelectBurstDuration(15)}
-              className={`px-3 py-1 rounded-full text-[11px] font-mono transition active:scale-95 ${
-                timerDuration === 15 * 60 && !isCustomTimeOpen
-                  ? 'bg-forest-950 text-white font-bold shadow-xs'
-                  : 'bg-white hover:bg-slate-100 text-slate-500'
-              }`}
-            >
-              15m Steady
-            </button>
-            <button
-              onClick={() => handleSelectBurstDuration(25)}
-              className={`px-3 py-1 rounded-full text-[11px] font-mono transition active:scale-95 ${
-                timerDuration === 25 * 60 && !isCustomTimeOpen
-                  ? 'bg-forest-950 text-white font-bold shadow-xs'
-                  : 'bg-white hover:bg-slate-100 text-slate-500'
-              }`}
-            >
-              25m Sprint
-            </button>
-
-            {/* Manual / Custom Time Button */}
-            <button
-              onClick={() => setIsCustomTimeOpen(!isCustomTimeOpen)}
-              className={`px-3 py-1 rounded-full text-[11px] font-mono transition active:scale-95 flex items-center gap-1 ${
-                isCustomTimeOpen || (timerDuration !== 10 * 60 && timerDuration !== 15 * 60 && timerDuration !== 25 * 60)
-                  ? 'bg-emerald-600 text-white font-bold shadow-xs'
-                  : 'bg-white hover:bg-slate-100 text-slate-500'
-              }`}
-            >
-              <Sliders className="w-3 h-3" />
-              <span>Manual</span>
-            </button>
-          </div>
-
-          {/* Inline Custom Minutes Stepper / Input */}
-          {isCustomTimeOpen && (
-            <div className="p-2.5 bg-white rounded-2xl max-w-xs mx-auto shadow-sm border border-slate-100 flex items-center justify-center gap-2 animate-in fade-in duration-150">
-              <span className="text-xs text-slate-500 font-sans">Set duration:</span>
-              <input
-                type="number"
-                min="1"
-                max="180"
-                value={customMinutesInput}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setCustomMinutesInput(val);
-                  handleApplyCustomMinutes(val);
-                }}
-                className="w-16 px-2 py-1 bg-[#F8FAF8] rounded-lg text-center font-mono font-bold text-forest-950 text-sm border border-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-              />
-              <span className="text-xs font-mono text-slate-400">mins</span>
-            </div>
-          )}
-        </div>
-
-      </section>
-
-      {/* ========================================================================= */}
-      {/* 2. MIDDLE: RESOURCE & GOAL SLICER BAR (Between Timer & Active Task)       */}
-      {/* ========================================================================= */}
-      <section className="text-left">
+        {/* Unified Search / URL / Topic Input Bar */}
         <form 
           onSubmit={handleGenerate} 
-          className="bg-white rounded-2xl sm:rounded-3xl p-1.5 sm:p-2 shadow-[0_8px_24px_-4px_rgba(15,61,35,0.04)] border border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 transition-all focus-within:border-emerald-300"
+          className="bg-white rounded-2xl sm:rounded-3xl p-2 shadow-[0_10px_30px_-5px_rgba(15,61,35,0.06),0_1px_3px_0_rgba(0,0,0,0.02)] border border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 transition focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-500/10"
         >
-          {/* Search / URL / Topic Input */}
-          <div className="flex-1 flex items-center gap-2 px-3 py-1.5 bg-[#F8FAF8] rounded-xl sm:rounded-2xl border border-slate-200/50">
-            <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          {/* Main Input */}
+          <div className="flex-1 flex items-center gap-2 px-3 py-2 bg-[#F8FAF8] rounded-xl sm:rounded-2xl border border-slate-200/50">
+            <Search className="w-4 h-4 text-slate-400 shrink-0" />
             <input
               type="text"
               value={goalInput}
               onChange={(e) => setGoalInput(e.target.value)}
-              placeholder="Paste article URL, course link, or topic..."
-              className="w-full bg-transparent text-xs sm:text-sm font-medium text-forest-950 focus:outline-none placeholder:text-slate-400"
+              placeholder="Paste YouTube URL, article, or topic (e.g. Distributed Systems)..."
+              className="w-full bg-transparent text-xs sm:text-sm font-medium text-forest-950 focus:outline-none placeholder:text-slate-400 font-sans"
             />
             
             {/* File Upload Trigger */}
@@ -547,11 +418,11 @@ Once you have read and internalized these three pillars, hit **Done & Complete S
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="p-1 px-1.5 rounded-lg hover:bg-slate-200/60 text-slate-500 hover:text-emerald-900 transition text-[11px] flex items-center gap-1 font-medium shrink-0"
-              title="Upload .md / .pdf / .txt file"
+              className="p-1 px-2 rounded-lg hover:bg-slate-200/60 text-slate-500 hover:text-emerald-900 transition text-xs flex items-center gap-1 font-medium shrink-0"
+              title="Upload Syllabus (.md / .pdf / .txt)"
             >
-              <Upload className="w-3 h-3 text-emerald-700" />
-              <span className="text-xs">Doc</span>
+              <Upload className="w-3.5 h-3.5 text-emerald-700" />
+              <span>Doc</span>
             </button>
 
             {goalInput && (
@@ -561,18 +432,18 @@ Once you have read and internalized these three pillars, hit **Done & Complete S
                   setGoalInput('');
                   setUploadedFileName(null);
                 }}
-                className="text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-200/60 shrink-0"
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-200/60 shrink-0"
               >
-                <X className="w-3 h-3" />
+                <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
 
-          {/* Integrated Manual Timeline & Daily Cap Numeric Inputs + Slice CTA */}
+          {/* Stepper Inputs + Slice CTA */}
           <div className="flex items-center gap-1.5 justify-between sm:justify-end shrink-0">
             
-            {/* Manual Timeline Input (Weeks) */}
-            <div className="flex items-center gap-0.5 bg-[#F8FAF8] px-2 py-1.5 rounded-xl border border-slate-200/60 shrink-0" title="Timeline duration in weeks">
+            {/* Weeks Input */}
+            <div className="flex items-center gap-0.5 bg-[#F8FAF8] px-2.5 py-2 rounded-xl border border-slate-200/60 shrink-0" title="Target duration in weeks">
               <input
                 type="number"
                 min="1"
@@ -584,8 +455,8 @@ Once you have read and internalized these three pillars, hit **Done & Complete S
               <span className="text-[10px] font-mono text-slate-400 select-none">wks</span>
             </div>
 
-            {/* Manual Daily Cap Input (Mins) */}
-            <div className="flex items-center gap-0.5 bg-[#F8FAF8] px-2 py-1.5 rounded-xl border border-slate-200/60 shrink-0" title="Daily focus cap in minutes">
+            {/* Daily Mins Input */}
+            <div className="flex items-center gap-0.5 bg-[#F8FAF8] px-2.5 py-2 rounded-xl border border-slate-200/60 shrink-0" title="Daily focus sprint cap in minutes">
               <input
                 type="number"
                 min="5"
@@ -602,7 +473,7 @@ Once you have read and internalized these three pillars, hit **Done & Complete S
             <button
               type="submit"
               disabled={isGenerating}
-              className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs active:scale-95 transition duration-100 disabled:opacity-50 flex items-center gap-1.5 shrink-0"
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md hover:shadow-emerald-600/20 active:scale-95 transition duration-150 disabled:opacity-50 flex items-center gap-1.5 shrink-0"
             >
               <Sparkles className="w-3.5 h-3.5" />
               <span>{isGenerating ? 'Slicing...' : 'Slice Goal 🛡️'}</span>
@@ -611,64 +482,212 @@ Once you have read and internalized these three pillars, hit **Done & Complete S
 
         </form>
 
+        {/* 1-Tap Quick-Start Inspiration Chips */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar pt-0.5">
+          <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider shrink-0 mr-1 select-none">
+            Quick Ideas:
+          </span>
+          {INSPIRATION_CHIPS.map((chip, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={(e) => handleGenerate(e, chip.query)}
+              className="px-2.5 py-1 rounded-full bg-white hover:bg-emerald-50 text-forest-900/80 hover:text-forest-950 text-[11px] font-medium border border-slate-200/70 shadow-xs hover:border-emerald-300 transition active:scale-95 shrink-0 flex items-center gap-1"
+            >
+              <span>{chip.label}</span>
+            </button>
+          ))}
+        </div>
+
         {/* Uploaded File Notification Pill */}
         {uploadedFileName && (
-          <div className="mt-2 px-3 py-1.5 bg-emerald-50 rounded-xl text-xs font-mono text-emerald-900 flex items-center justify-between border border-emerald-200/50 shadow-xs">
-            <span className="flex items-center gap-1.5 truncate">
-              <FileText className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-              <span className="truncate">Resource: {uploadedFileName}</span>
+          <div className="px-3.5 py-2 bg-emerald-50 rounded-2xl text-xs font-mono text-emerald-900 flex items-center justify-between border border-emerald-200/60 shadow-xs">
+            <span className="flex items-center gap-2 truncate">
+              <FileText className="w-4 h-4 text-emerald-700 shrink-0" />
+              <span className="truncate font-semibold">Active Resource: {uploadedFileName}</span>
             </span>
             <button
               type="button"
               onClick={() => setUploadedFileName(null)}
-              className="text-emerald-700 underline text-[11px] ml-2 shrink-0 hover:text-emerald-900"
+              className="text-emerald-700 underline text-[11px] ml-2 shrink-0 hover:text-emerald-900 font-sans"
             >
               Remove
             </button>
           </div>
         )}
+
       </section>
 
       {/* ========================================================================= */}
-      {/* 3. ACTIVE FOCUS TASK CARD (Execution Hero)                                */}
+      {/* 2. HERO EXECUTION UNIT: The Active Focus Room & In-App Reader             */}
       {/* ========================================================================= */}
-      <section className="bg-white rounded-3xl p-5 sm:p-6 shadow-[0_12px_32px_-4px_rgba(15,61,35,0.06),0_2px_6px_0_rgba(0,0,0,0.02)] text-left space-y-4 border border-slate-100">
+      <section 
+        ref={focusRoomRef}
+        className={`bg-white rounded-3xl p-5 sm:p-7 shadow-[0_16px_40px_-6px_rgba(15,61,35,0.08),0_2px_8px_0_rgba(0,0,0,0.02)] text-left space-y-6 border transition-all duration-300 ${
+          isRunning ? 'border-emerald-400 ring-2 ring-emerald-500/10' : 'border-slate-100'
+        }`}
+      >
         
-        <div className="flex items-center justify-between">
+        {/* Active Task Status Header */}
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-4">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span className="text-[10px] font-mono text-emerald-800 uppercase tracking-wider font-semibold">
-              Active Focus Task
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-xs font-mono text-emerald-800 uppercase tracking-wider font-bold">
+              Active Focus Sprint · Step {Math.min(activeStepIndex + 1, microSteps.length)} of {microSteps.length}
             </span>
           </div>
-          <span className="text-xs font-mono text-slate-400">
-            ~{Math.round(timerDuration / 60)} mins
-          </span>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono text-slate-400 bg-slate-50 px-2.5 py-1 rounded-full">
+              ~{Math.round(timerDuration / 60)}m Block
+            </span>
+          </div>
         </div>
 
-        <div className="space-y-2">
-          <h3 className="text-base sm:text-lg font-bold text-forest-950 leading-snug">
+        {/* Task Title & Working Memory Intuition Anchor */}
+        <div className="space-y-2.5">
+          <h3 className="text-lg sm:text-2xl font-bold text-forest-950 tracking-tight leading-snug">
             {activeTask?.title || "Foundational Overview & Key Mental Models"}
           </h3>
 
-          {/* Slop-Free Typography-First Working Memory Anchor */}
           {activeTask?.intuitionTip && (
-            <div className="pt-2 border-t border-slate-100 flex items-start gap-2">
-              <span className="text-[10px] font-mono uppercase tracking-wider font-semibold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded shrink-0 select-none">
+            <div className="p-3 bg-emerald-50/70 rounded-2xl border border-emerald-200/50 flex items-start gap-2.5">
+              <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-emerald-800 bg-white px-2 py-0.5 rounded-md shrink-0 shadow-xs">
                 Intuition
               </span>
-              <p className="text-xs text-forest-900/80 font-sans leading-relaxed">
+              <p className="text-xs text-forest-900/90 font-sans leading-relaxed">
                 {activeTask.intuitionTip}
               </p>
             </div>
           )}
         </div>
 
-        {/* Sequential Micro-Steps with Expandable Reading Passages */}
-        <div className="space-y-2 pt-2">
-          <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">
-            Micro-Steps & Reading Material
-          </span>
+        {/* Integrated Digital Stopwatch & Tactile Joystick Controls */}
+        <div className="p-4 sm:p-5 bg-gradient-to-br from-[#F8FAF8] to-emerald-50/40 rounded-3xl border border-emerald-100/60 space-y-4">
+          
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            
+            {/* Digital Timer Display */}
+            <div className="flex items-center gap-3">
+              <div className={`font-mono text-4xl sm:text-5xl font-extrabold tracking-tight transition duration-200 ${
+                isRunning ? 'text-emerald-700 animate-pulse' : 'text-forest-950'
+              }`}>
+                {timerFormatted}
+              </div>
+
+              {/* Tactile Start / Stop Joystick Dial */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsRunning(!isRunning)}
+                  className={`w-12 h-12 rounded-full flex items-center justify-center shadow-md active:scale-95 transition-all duration-150 border-2 ${
+                    isRunning
+                      ? 'bg-rose-600 hover:bg-rose-700 text-white border-rose-500 ring-4 ring-rose-500/20'
+                      : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-400 ring-4 ring-emerald-500/20'
+                  }`}
+                  title={isRunning ? "Pause Sprint" : "Start Focus Sprint"}
+                >
+                  {isRunning ? (
+                    <Pause className="w-5 h-5 fill-current" />
+                  ) : (
+                    <Play className="w-5 h-5 ml-0.5 fill-current" />
+                  )}
+                </button>
+
+                <button
+                  onClick={handleResetSession}
+                  className="p-2 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 transition"
+                  title="Reset Timer"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Burst Durations & Sound Ambience */}
+            <div className="flex flex-wrap items-center justify-center sm:justify-end gap-1.5">
+              {[10, 15, 25].map((mins) => (
+                <button
+                  key={mins}
+                  onClick={() => handleSelectBurstDuration(mins)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-mono transition active:scale-95 ${
+                    timerDuration === mins * 60 && !isCustomTimeOpen
+                      ? 'bg-forest-950 text-white font-bold shadow-xs'
+                      : 'bg-white hover:bg-slate-100 text-slate-600 border border-slate-200/60'
+                  }`}
+                >
+                  {mins}m
+                </button>
+              ))}
+
+              <button
+                onClick={() => setIsCustomTimeOpen(!isCustomTimeOpen)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-mono transition active:scale-95 flex items-center gap-1 ${
+                  isCustomTimeOpen || (timerDuration !== 10 * 60 && timerDuration !== 15 * 60 && timerDuration !== 25 * 60)
+                    ? 'bg-emerald-700 text-white font-bold shadow-xs'
+                    : 'bg-white hover:bg-slate-100 text-slate-600 border border-slate-200/60'
+                }`}
+              >
+                <Sliders className="w-3 h-3" />
+                <span>Custom</span>
+              </button>
+
+              {/* Brown Noise Ambient Sound */}
+              <button
+                onClick={toggleBrownNoise}
+                className={`px-3 py-1.5 rounded-xl text-xs font-sans transition active:scale-95 flex items-center gap-1 border ${
+                  isBrownNoiseOn
+                    ? 'bg-emerald-100 text-emerald-900 border-emerald-300 font-bold'
+                    : 'bg-white text-slate-600 border-slate-200/60 hover:bg-slate-100'
+                }`}
+                title="Brown Noise Focus Generator"
+              >
+                {isBrownNoiseOn ? <Volume2 className="w-3.5 h-3.5 text-emerald-700 animate-pulse" /> : <VolumeX className="w-3.5 h-3.5 text-slate-400" />}
+                <span>Noise</span>
+              </button>
+            </div>
+
+          </div>
+
+          {/* Inline Custom Minutes Stepper */}
+          {isCustomTimeOpen && (
+            <div className="p-2.5 bg-white rounded-2xl max-w-xs mx-auto shadow-xs border border-slate-200/70 flex items-center justify-center gap-2 animate-in fade-in duration-150">
+              <span className="text-xs text-slate-500 font-sans">Set duration:</span>
+              <input
+                type="number"
+                min="1"
+                max="180"
+                value={customMinutesInput}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setCustomMinutesInput(val);
+                  handleApplyCustomMinutes(val);
+                }}
+                className="w-16 px-2 py-1 bg-[#F8FAF8] rounded-lg text-center font-mono font-bold text-forest-950 text-sm border border-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+              <span className="text-xs font-mono text-slate-400">mins</span>
+            </div>
+          )}
+
+          {/* Sprint Progress Bar */}
+          <div className="w-full bg-slate-200/70 h-1.5 rounded-full overflow-hidden">
+            <div 
+              className="bg-emerald-600 h-full rounded-full transition-all duration-300"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+
+        </div>
+
+        {/* Sequential Micro-Steps & In-App Reading Modules */}
+        <div className="space-y-3 pt-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">
+              Micro-Steps & In-App Material
+            </span>
+            <span className="text-xs font-mono text-emerald-800 font-semibold">
+              {microSteps.filter((_, idx) => idx < activeStepIndex).length} / {microSteps.length} Complete
+            </span>
+          </div>
 
           {microSteps.map((step, idx) => {
             const isCurrent = idx === activeStepIndex;
@@ -683,15 +702,15 @@ Once you have read and internalized these three pillars, hit **Done & Complete S
               return (
                 <div 
                   key={idx} 
-                  className="p-3 rounded-xl bg-slate-50 flex items-center justify-between text-xs text-slate-400 transition"
+                  className="p-3.5 rounded-2xl bg-slate-50/80 flex items-center justify-between text-xs text-slate-400 border border-slate-100 transition"
                 >
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-4 h-4 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center justify-center shrink-0">
+                  <div className="flex items-center gap-3">
+                    <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center justify-center shrink-0">
                       ✓
                     </span>
-                    <span className="line-through text-slate-400">{stepTitle}</span>
+                    <span className="line-through text-slate-400 font-medium">{stepTitle}</span>
                   </div>
-                  <span className="text-[10px] font-mono text-emerald-700 font-medium">Completed</span>
+                  <span className="text-[11px] font-mono text-emerald-700 font-bold">Done</span>
                 </div>
               );
             }
@@ -701,31 +720,31 @@ Once you have read and internalized these three pillars, hit **Done & Complete S
                 key={idx} 
                 className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
                   isCurrent 
-                    ? 'bg-emerald-50/40 border-emerald-300 shadow-xs' 
+                    ? 'bg-emerald-50/40 border-emerald-300 shadow-sm ring-1 ring-emerald-500/10' 
                     : 'bg-[#F8FAF8] border-slate-100 opacity-60'
                 }`}
               >
                 {/* Step Header Toggle */}
                 <div 
                   onClick={() => setExpandedStepIndex(isExpanded ? null : idx)}
-                  className="p-3.5 flex items-center justify-between gap-3 cursor-pointer select-none hover:bg-emerald-50/70 transition"
+                  className="p-4 flex items-center justify-between gap-3 cursor-pointer select-none hover:bg-emerald-50/70 transition"
                 >
-                  <div className="flex items-center gap-2.5">
-                    <span className={`w-5 h-5 rounded-full flex items-center justify-center font-mono text-xs font-bold shrink-0 ${
-                      isCurrent ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600'
+                  <div className="flex items-center gap-3">
+                    <span className={`w-6 h-6 rounded-full flex items-center justify-center font-mono text-xs font-bold shrink-0 ${
+                      isCurrent ? 'bg-emerald-600 text-white shadow-xs' : 'bg-slate-200 text-slate-600'
                     }`}>
                       {idx + 1}
                     </span>
                     <div>
-                      <p className="text-xs font-bold text-forest-950">{stepTitle}</p>
-                      <p className="text-[10px] text-slate-400 font-mono">~{stepTime} · Click to view concept</p>
+                      <p className="text-xs sm:text-sm font-bold text-forest-950">{stepTitle}</p>
+                      <p className="text-[11px] text-slate-400 font-mono">~{stepTime} · Click to expand concept</p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
                     {reading && (
-                      <span className="text-[10px] font-mono text-emerald-800 bg-white px-2 py-0.5 rounded-full flex items-center gap-1 border border-emerald-200/50">
-                        <BookOpen className="w-3 h-3" />
+                      <span className="text-[10px] font-mono text-emerald-800 bg-white px-2 py-0.5 rounded-full flex items-center gap-1 border border-emerald-200/50 shadow-xs">
+                        <BookOpen className="w-3 h-3 text-emerald-700" />
                         <span>Reading</span>
                       </span>
                     )}
@@ -737,9 +756,9 @@ Once you have read and internalized these three pillars, hit **Done & Complete S
 
                 {/* Collapsible Reading Material Container */}
                 {isExpanded && (
-                  <div className="px-4 pb-4 pt-2.5 border-t border-emerald-100 bg-white/95 space-y-3.5 text-left animate-in fade-in duration-150">
+                  <div className="px-5 pb-5 pt-3 border-t border-emerald-100 bg-white/95 space-y-4 text-left animate-in fade-in duration-150">
                     {reading ? (
-                      <div className="p-4 bg-[#F8FAF8] rounded-2xl border border-emerald-100/70 text-forest-950 font-sans shadow-xs">
+                      <div className="p-4 sm:p-5 bg-[#F8FAF8] rounded-2xl border border-emerald-100/70 text-forest-950 font-sans shadow-xs">
                         {renderFormattedReading(reading)}
                       </div>
                     ) : (
@@ -750,13 +769,13 @@ Once you have read and internalized these three pillars, hit **Done & Complete S
 
                     {/* Explicit "Done & Complete Step" Button */}
                     {isCurrent && (
-                      <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100">
-                        <span className="text-xs text-slate-400 font-sans">Finished absorbing this section?</span>
+                      <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100">
+                        <span className="text-xs text-slate-500 font-sans">Absorbed this section?</span>
                         <button
                           onClick={() => handleStepComplete(idx)}
-                          className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm active:scale-95 transition flex items-center gap-1.5"
+                          className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md hover:shadow-emerald-600/20 active:scale-95 transition flex items-center gap-2"
                         >
-                          <Check className="w-3.5 h-3.5" />
+                          <Check className="w-4 h-4" />
                           <span>Done & Complete Step</span>
                         </button>
                       </div>
@@ -768,48 +787,24 @@ Once you have read and internalized these three pillars, hit **Done & Complete S
           })}
         </div>
 
-      </section>
+        {/* Bottom Safety Valve & Rescue Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
+          <button
+            onClick={() => setShowStuckModal(true)}
+            className="text-xs text-slate-400 hover:text-slate-700 font-sans flex items-center gap-1.5 transition"
+          >
+            <LifeBuoy className="w-3.5 h-3.5 text-slate-400" />
+            <span>I'm feeling stuck / overwhelmed</span>
+          </button>
 
-      {/* ========================================================================= */}
-      {/* 4. TACTILE CONTROL BAR (Brown Noise, Stuck, Done)                         */}
-      {/* ========================================================================= */}
-      <section className="flex flex-wrap items-center justify-center gap-2.5 pt-1">
-        
-        {/* Brown Noise Generator */}
-        <button
-          onClick={toggleBrownNoise}
-          className={`px-4 py-2.5 rounded-full text-xs font-medium flex items-center gap-1.5 shadow-sm active:scale-95 transition-all duration-150 ${
-            isBrownNoiseOn
-              ? 'bg-emerald-100 text-emerald-900 font-semibold'
-              : 'bg-white hover:bg-slate-50 text-forest-900 border border-slate-200/60'
-          }`}
-        >
-          {isBrownNoiseOn ? (
-            <Volume2 className="w-3.5 h-3.5 text-emerald-700 animate-pulse" />
-          ) : (
-            <VolumeX className="w-3.5 h-3.5 text-slate-400" />
-          )}
-          <span>{isBrownNoiseOn ? 'Brown Noise (On)' : 'Brown Noise'}</span>
-        </button>
-
-        {/* I'm Feeling Stuck Helper */}
-        <button
-          onClick={() => setShowStuckModal(true)}
-          className="px-3.5 py-2 text-xs text-slate-400 hover:text-slate-700 font-sans active:scale-95 transition duration-100 flex items-center gap-1.5"
-        >
-          <LifeBuoy className="w-3.5 h-3.5" />
-          <span>I'm feeling stuck</span>
-        </button>
-
-        {/* Session Complete Button */}
-        <button
-          onClick={() => handleCompleteSession(false)}
-          className="px-4 py-2.5 rounded-full text-xs font-semibold bg-emerald-800 hover:bg-emerald-900 text-white shadow-sm active:scale-95 transition-all duration-150 flex items-center gap-1.5"
-          title="Mark session complete and record focus time"
-        >
-          <CheckCircle2 className="w-3.5 h-3.5" />
-          <span>Done</span>
-        </button>
+          <button
+            onClick={() => handleCompleteSession(false)}
+            className="text-xs font-semibold text-emerald-800 hover:text-emerald-950 flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100/80 px-3.5 py-1.5 rounded-full border border-emerald-200/60 transition active:scale-95"
+          >
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
+            <span>Mark Full Session Done</span>
+          </button>
+        </div>
 
       </section>
 
@@ -822,7 +817,7 @@ Once you have read and internalized these three pillars, hit **Done & Complete S
                 Take a breath. No judgment.
               </h4>
               <p className="text-xs text-slate-500 leading-relaxed font-sans">
-                Initiation friction happens to everyone. How can we make this moment easier?
+                Initiation friction is completely normal. How can we make this moment frictionless?
               </p>
             </div>
 
@@ -832,7 +827,7 @@ Once you have read and internalized these three pillars, hit **Done & Complete S
                   setShowStuckModal(false);
                   handleStepComplete(activeStepIndex);
                 }}
-                className="w-full p-3.5 bg-[#F8FAF8] hover:bg-emerald-50 rounded-2xl text-left text-xs font-semibold text-forest-950 transition active:scale-98 flex items-center justify-between"
+                className="w-full p-3.5 bg-[#F8FAF8] hover:bg-emerald-50 rounded-2xl text-left text-xs font-semibold text-forest-950 transition active:scale-98 flex items-center justify-between border border-slate-100"
               >
                 <span>✂️ Shrink to 10-second micro-read</span>
                 <span className="text-emerald-700 font-mono text-[11px]">Easy</span>
@@ -843,7 +838,7 @@ Once you have read and internalized these three pillars, hit **Done & Complete S
                   setShowStuckModal(false);
                   onOpenCheckin?.();
                 }}
-                className="w-full p-3.5 bg-[#F8FAF8] hover:bg-emerald-50 rounded-2xl text-left text-xs font-semibold text-forest-950 transition active:scale-98 flex items-center justify-between"
+                className="w-full p-3.5 bg-[#F8FAF8] hover:bg-emerald-50 rounded-2xl text-left text-xs font-semibold text-forest-950 transition active:scale-98 flex items-center justify-between border border-slate-100"
               >
                 <span>🧘 90-second box breathing reset</span>
                 <span className="text-slate-400 font-mono text-[11px]">Somatic</span>
@@ -854,7 +849,7 @@ Once you have read and internalized these three pillars, hit **Done & Complete S
                   setShowStuckModal(false);
                   onAbsorbBuffer?.();
                 }}
-                className="w-full p-3.5 bg-[#F8FAF8] hover:bg-amber-50 rounded-2xl text-left text-xs font-semibold text-amber-950 transition active:scale-98 flex items-center justify-between"
+                className="w-full p-3.5 bg-[#F8FAF8] hover:bg-amber-50 rounded-2xl text-left text-xs font-semibold text-amber-950 transition active:scale-98 flex items-center justify-between border border-amber-200/50"
               >
                 <span>🛡️ Absorb into Buffer Slot (Zero Guilt)</span>
                 <span className="text-amber-700 font-mono text-[11px]">Protected</span>
@@ -874,20 +869,31 @@ Once you have read and internalized these three pillars, hit **Done & Complete S
       )}
 
       {/* ========================================================================= */}
-      {/* 5. THE LIVING CURRICULUM ROADMAP (Weekly Milestone Drawer)                 */}
+      {/* 3. ANTI-BURNOUT ROADMAP: Weekly Milestones & Buffer Cushions              */}
       {/* ========================================================================= */}
-      <section className="space-y-3 pt-6 border-t border-slate-200/60 text-left">
+      <section className="space-y-4 pt-4 border-t border-slate-200/60 text-left">
         
-        <div className="flex items-center justify-between px-1">
-          <div className="flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-emerald-700" />
-            <h3 className="font-display font-bold text-sm sm:text-base text-forest-950">
-              Curriculum Roadmap Overview
-            </h3>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2">
+              <Shield className="w-4 h-4 text-emerald-700" />
+              <h3 className="font-display font-bold text-base sm:text-lg text-forest-950">
+                Anti-Burnout Roadmap
+              </h3>
+            </div>
+            <p className="text-xs text-slate-500 font-sans">
+              Structured across {milestones.length} weeks with {roadmap?.bufferDaysCount || targetWeeks * 2} built-in buffer cushions.
+            </p>
           </div>
-          <span className="text-[11px] font-mono text-slate-400">
-            Click any task to load into Focus Room
-          </span>
+
+          <button
+            onClick={onAbsorbBuffer}
+            className="px-3 py-1.5 rounded-full text-xs font-medium bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200/80 shadow-xs flex items-center gap-1.5 transition active:scale-95 shrink-0 self-start sm:self-auto"
+            title="Absorb 1 buffer day to protect streak"
+          >
+            <Shield className="w-3.5 h-3.5 text-amber-700" />
+            <span>Absorb Buffer Day</span>
+          </button>
         </div>
 
         {/* Milestone Accordion List */}
@@ -898,7 +904,7 @@ Once you have read and internalized these three pillars, hit **Done & Complete S
             return (
               <div
                 key={milestone.id}
-                className="bg-white rounded-2xl shadow-[0_4px_20px_-2px_rgba(15,61,35,0.03)] overflow-hidden transition-all duration-200 border border-slate-100"
+                className="bg-white rounded-3xl shadow-[0_4px_20px_-2px_rgba(15,61,35,0.03)] overflow-hidden transition-all duration-200 border border-slate-100"
               >
                 {/* Milestone Toggle Header */}
                 <div
@@ -906,8 +912,8 @@ Once you have read and internalized these three pillars, hit **Done & Complete S
                   className="p-4 sm:p-5 flex items-center justify-between cursor-pointer select-none hover:bg-[#F8FAF8] transition"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="w-7 h-7 rounded-xl bg-emerald-50 text-emerald-800 font-mono text-xs font-bold flex items-center justify-center shrink-0">
-                      {milestone.weekNumber ? `M${milestone.weekNumber}` : 'M1'}
+                    <span className="w-8 h-8 rounded-2xl bg-emerald-50 text-emerald-800 font-mono text-xs font-bold flex items-center justify-center shrink-0 border border-emerald-100">
+                      {milestone.weekNumber ? `W${milestone.weekNumber}` : 'M1'}
                     </span>
                     <div>
                       <h4 className="text-xs sm:text-sm font-bold text-forest-950">
@@ -916,14 +922,14 @@ Once you have read and internalized these three pillars, hit **Done & Complete S
                       <p className="text-[11px] text-slate-400 font-sans line-clamp-1">{milestone.description}</p>
                     </div>
                   </div>
-                  <span className="text-xs text-slate-400 font-mono px-2 py-1 bg-slate-50 rounded-lg flex items-center gap-1">
+                  <span className="text-xs text-slate-400 font-mono px-2.5 py-1 bg-slate-50 rounded-xl flex items-center gap-1 border border-slate-100">
                     {isOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                   </span>
                 </div>
 
                 {/* Milestone Tasks */}
                 {isOpen && (
-                  <div className="px-4 sm:px-5 pb-5 space-y-2 pt-1">
+                  <div className="px-4 sm:px-5 pb-5 space-y-2 pt-1 border-t border-slate-50">
                     {milestone.tasks.map((task) => {
                       const isBuffer = task.type === 'BUFFER';
                       const isSelected = activeTask?.id === task.id;
@@ -931,12 +937,12 @@ Once you have read and internalized these three pillars, hit **Done & Complete S
                       return (
                         <div
                           key={task.id}
-                          className={`p-3.5 rounded-xl flex items-center justify-between gap-3 transition ${
+                          className={`p-3.5 rounded-2xl flex items-center justify-between gap-3 transition ${
                             isBuffer
-                              ? 'bg-amber-50/70 text-amber-950'
+                              ? 'bg-amber-50/70 border border-amber-200/50 text-amber-950'
                               : isSelected
-                              ? 'bg-emerald-50/80 border border-emerald-300/80 text-forest-950'
-                              : 'bg-[#F8FAF8] hover:bg-slate-100/60 text-forest-950'
+                              ? 'bg-emerald-50/80 border border-emerald-300 text-forest-950 shadow-xs'
+                              : 'bg-[#F8FAF8] hover:bg-slate-100/60 border border-slate-100 text-forest-950'
                           }`}
                         >
                           <div className="flex items-start sm:items-center gap-2.5">
@@ -962,18 +968,18 @@ Once you have read and internalized these three pillars, hit **Done & Complete S
                           {!isBuffer ? (
                             <button
                               onClick={() => handleSelectTaskAndScroll(task)}
-                              className={`px-3.5 py-1.5 rounded-xl text-[11px] font-semibold active:scale-95 transition duration-100 shadow-sm shrink-0 flex items-center gap-1 ${
+                              className={`px-3.5 py-1.5 rounded-xl text-[11px] font-bold active:scale-95 transition duration-100 shadow-xs shrink-0 flex items-center gap-1 ${
                                 isSelected
                                   ? 'bg-forest-950 text-white'
                                   : 'bg-emerald-600 hover:bg-emerald-700 text-white'
                               }`}
                             >
-                              <span>{isSelected ? 'Active' : 'Focus & Read'}</span>
+                              <span>{isSelected ? 'Active' : 'Load Sprint'}</span>
                               <ArrowRight className="w-3 h-3" />
                             </button>
                           ) : (
-                            <span className="text-[10px] font-mono text-amber-800 bg-amber-100/60 px-2 py-0.5 rounded-md shrink-0">
-                              Guilt-free
+                            <span className="text-[10px] font-mono text-amber-800 bg-amber-100/80 px-2.5 py-1 rounded-full shrink-0 font-semibold">
+                              Guilt-free Rest
                             </span>
                           )}
                         </div>
